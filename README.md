@@ -1,4 +1,4 @@
-# student_support_app
+# Student-Support-App
 
 A new Flutter project.
 

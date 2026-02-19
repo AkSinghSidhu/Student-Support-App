@@ -1,0 +1,470 @@
+{
+    "users": {
+        "123456789": {
+            "auid": "123456789",
+            "name": "John Doe",
+            "email": "john.doe@university.edu",
+            "password": "password123",
+            "semester": 5,
+            "department": "Computer Science",
+            "phone": "+91 9876543210",
+            "photoUrl": "",
+            "createdAt": "2025-08-15T10:00:00Z"
+        },
+        "987654321": {
+            "auid": "987654321",
+            "name": "Jane Smith",
+            "email": "jane.smith@university.edu",
+            "password": "password456",
+            "semester": 3,
+            "department": "Electronics",
+            "phone": "+91 9123456780",
+            "photoUrl": "",
+            "createdAt": "2025-09-01T10:00:00Z"
+        },
+        "456789123": {
+            "auid": "456789123",
+            "name": "Alex Kumar",
+            "email": "alex.kumar@university.edu",
+            "password": "test1234",
+            "semester": 7,
+            "department": "Mechanical",
+            "phone": "+91 8765432190",
+            "photoUrl": "",
+            "createdAt": "2024-08-20T10:00:00Z"
+        }
+    },
+    "feedback": {
+        "fb001": {
+            "userId": "123456789",
+            "category": "Academic",
+            "rating": 5,
+            "message": "The new lab facilities are excellent!",
+            "status": "reviewed",
+            "createdAt": "2026-01-15T14:30:00Z"
+        },
+        "fb002": {
+            "userId": "987654321",
+            "category": "Infrastructure",
+            "rating": 3,
+            "message": "WiFi connectivity in Block C needs improvement",
+            "status": "pending",
+            "createdAt": "2026-01-28T09:15:00Z"
+        },
+        "fb003": {
+            "userId": "456789123",
+            "category": "Events",
+            "rating": 4,
+            "message": "Tech fest was well organized, looking forward to next year!",
+            "status": "reviewed",
+            "createdAt": "2026-02-01T16:45:00Z"
+        }
+    },
+    "complaints": {
+        "cmp001": {
+            "userId": "123456789",
+            "type": "Infrastructure",
+            "urgency": "High",
+            "subject": "AC not working in Room 205",
+            "description": "The air conditioning in classroom 205 has been non-functional for 3 days.",
+            "status": "in_progress",
+            "createdAt": "2026-02-02T11:00:00Z"
+        },
+        "cmp002": {
+            "userId": "987654321",
+            "type": "Hostel",
+            "urgency": "Medium",
+            "subject": "Water heater issue",
+            "description": "Hot water not available in hostel block B during morning hours.",
+            "status": "pending",
+            "createdAt": "2026-02-03T07:30:00Z"
+        },
+        "cmp003": {
+            "userId": "456789123",
+            "type": "Canteen",
+            "urgency": "Low",
+            "subject": "Menu variety request",
+            "description": "Please add more vegetarian options to the evening menu.",
+            "status": "resolved",
+            "createdAt": "2026-01-20T13:00:00Z"
+        }
+    },
+    "syllabus": {
+        "CS": {
+            "1": {
+                "CS101": {
+                    "code": "CS101",
+                    "name": "Programming Fundamentals",
+                    "credits": 4,
+                    "units": [
+                        {
+                            "title": "Introduction to Programming",
+                            "topics": [
+                                "Variables",
+                                "Data Types",
+                                "Operators"
+                            ]
+                        },
+                        {
+                            "title": "Control Structures",
+                            "topics": [
+                                "Conditionals",
+                                "Loops",
+                                "Functions"
+                            ]
+                        },
+                        {
+                            "title": "Arrays and Strings",
+                            "topics": [
+                                "1D Arrays",
+                                "2D Arrays",
+                                "String Operations"
+                            ]
+                        },
+                        {
+                            "title": "Pointers and Memory",
+                            "topics": [
+                                "Pointer Basics",
+                                "Dynamic Allocation",
+                                "Memory Management"
+                            ]
+                        }
+                    ]
+                },
+                "MA101": {
+                    "code": "MA101",
+                    "name": "Engineering Mathematics I",
+                    "credits": 4,
+                    "units": [
+                        {
+                            "title": "Calculus",
+                            "topics": [
+                                "Limits",
+                                "Derivatives",
+                                "Integration"
+                            ]
+                        },
+                        {
+                            "title": "Matrices",
+                            "topics": [
+                                "Matrix Operations",
+                                "Determinants",
+                                "Eigenvalues"
+                            ]
+                        }
+                    ]
+                }
+            },
+            "3": {
+                "CS201": {
+                    "code": "CS201",
+                    "name": "Data Structures",
+                    "credits": 4,
+                    "units": [
+                        {
+                            "title": "Linear Structures",
+                            "topics": [
+                                "Arrays",
+                                "Linked Lists",
+                                "Stacks",
+                                "Queues"
+                            ]
+                        },
+                        {
+                            "title": "Trees",
+                            "topics": [
+                                "Binary Trees",
+                                "BST",
+                                "AVL Trees"
+                            ]
+                        },
+                        {
+                            "title": "Graphs",
+                            "topics": [
+                                "Representations",
+                                "BFS",
+                                "DFS",
+                                "Shortest Path"
+                            ]
+                        }
+                    ]
+                },
+                "CS202": {
+                    "code": "CS202",
+                    "name": "Object Oriented Programming",
+                    "credits": 3,
+                    "units": [
+                        {
+                            "title": "OOP Basics",
+                            "topics": [
+                                "Classes",
+                                "Objects",
+                                "Encapsulation"
+                            ]
+                        },
+                        {
+                            "title": "Inheritance & Polymorphism",
+                            "topics": [
+                                "Single Inheritance",
+                                "Multiple Inheritance",
+                                "Virtual Functions"
+                            ]
+                        }
+                    ]
+                }
+            },
+            "5": {
+                "CS301": {
+                    "code": "CS301",
+                    "name": "Database Systems",
+                    "credits": 4,
+                    "units": [
+                        {
+                            "title": "Relational Model",
+                            "topics": [
+                                "ER Diagrams",
+                                "Normalization",
+                                "SQL"
+                            ]
+                        },
+                        {
+                            "title": "Transactions",
+                            "topics": [
+                                "ACID Properties",
+                                "Concurrency Control",
+                                "Recovery"
+                            ]
+                        }
+                    ]
+                },
+                "CS302": {
+                    "code": "CS302",
+                    "name": "Operating Systems",
+                    "credits": 4,
+                    "units": [
+                        {
+                            "title": "Process Management",
+                            "topics": [
+                                "Processes",
+                                "Threads",
+                                "Scheduling"
+                            ]
+                        },
+                        {
+                            "title": "Memory Management",
+                            "topics": [
+                                "Paging",
+                                "Segmentation",
+                                "Virtual Memory"
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "resources": {
+        "books": {
+            "book001": {
+                "title": "Data Structures and Algorithms",
+                "author": "Thomas H. Cormen",
+                "subject": "CS201",
+                "type": "PDF",
+                "downloadUrl": "https://example.com/books/dsa.pdf",
+                "size": "25MB"
+            },
+            "book002": {
+                "title": "Database System Concepts",
+                "author": "Abraham Silberschatz",
+                "subject": "CS301",
+                "type": "PDF",
+                "downloadUrl": "https://example.com/books/dbms.pdf",
+                "size": "32MB"
+            },
+            "book003": {
+                "title": "Operating System Concepts",
+                "author": "Peter B. Galvin",
+                "subject": "CS302",
+                "type": "PDF",
+                "downloadUrl": "https://example.com/books/os.pdf",
+                "size": "28MB"
+            }
+        },
+        "notes": {
+            "note001": {
+                "title": "CS201 - Unit 1 Complete Notes",
+                "subject": "Data Structures",
+                "semester": 3,
+                "pages": 45,
+                "downloadUrl": "https://example.com/notes/cs201_unit1.pdf",
+                "uploadedBy": "Prof. Sharma"
+            },
+            "note002": {
+                "title": "CS301 - SQL Quick Reference",
+                "subject": "Database Systems",
+                "semester": 5,
+                "pages": 12,
+                "downloadUrl": "https://example.com/notes/sql_ref.pdf",
+                "uploadedBy": "Prof. Gupta"
+            },
+            "note003": {
+                "title": "CS302 - Process Scheduling Summary",
+                "subject": "Operating Systems",
+                "semester": 5,
+                "pages": 20,
+                "downloadUrl": "https://example.com/notes/os_scheduling.pdf",
+                "uploadedBy": "Prof. Kumar"
+            }
+        },
+        "pyqs": {
+            "pyq001": {
+                "title": "CS201 Mid Semester 2025",
+                "subject": "Data Structures",
+                "year": "2025",
+                "examType": "Mid",
+                "downloadUrl": "https://example.com/pyqs/cs201_mid_2025.pdf"
+            },
+            "pyq002": {
+                "title": "CS201 End Semester 2024",
+                "subject": "Data Structures",
+                "year": "2024",
+                "examType": "End",
+                "downloadUrl": "https://example.com/pyqs/cs201_end_2024.pdf"
+            },
+            "pyq003": {
+                "title": "CS301 Mid Semester 2025",
+                "subject": "Database Systems",
+                "year": "2025",
+                "examType": "Mid",
+                "downloadUrl": "https://example.com/pyqs/cs301_mid_2025.pdf"
+            },
+            "pyq004": {
+                "title": "CS302 End Semester 2024",
+                "subject": "Operating Systems",
+                "year": "2024",
+                "examType": "End",
+                "downloadUrl": "https://example.com/pyqs/cs302_end_2024.pdf"
+            }
+        }
+    },
+    "attendance": {
+        "123456789": {
+            "alertEnabled": true,
+            "alertThreshold": 75,
+            "subjects": {
+                "CS301": {
+                    "name": "Database Systems",
+                    "attended": 28,
+                    "total": 30
+                },
+                "CS302": {
+                    "name": "Operating Systems",
+                    "attended": 22,
+                    "total": 28
+                },
+                "CS303": {
+                    "name": "Computer Networks",
+                    "attended": 18,
+                    "total": 26
+                },
+                "MA301": {
+                    "name": "Probability & Statistics",
+                    "attended": 24,
+                    "total": 30
+                }
+            }
+        },
+        "987654321": {
+            "alertEnabled": true,
+            "alertThreshold": 70,
+            "subjects": {
+                "EC201": {
+                    "name": "Analog Circuits",
+                    "attended": 25,
+                    "total": 28
+                },
+                "EC202": {
+                    "name": "Digital Electronics",
+                    "attended": 20,
+                    "total": 26
+                },
+                "MA201": {
+                    "name": "Engineering Mathematics III",
+                    "attended": 22,
+                    "total": 28
+                }
+            }
+        },
+        "456789123": {
+            "alertEnabled": false,
+            "alertThreshold": 75,
+            "subjects": {
+                "ME401": {
+                    "name": "Thermodynamics II",
+                    "attended": 26,
+                    "total": 28
+                },
+                "ME402": {
+                    "name": "Machine Design",
+                    "attended": 24,
+                    "total": 26
+                },
+                "ME403": {
+                    "name": "Fluid Mechanics",
+                    "attended": 21,
+                    "total": 25
+                }
+            }
+        }
+    },
+    "notices": {
+        "notice001": {
+            "title": "Mid Semester Examination Schedule",
+            "category": "Exam",
+            "content": "Mid semester exams will be conducted from Feb 15-22, 2026. Detailed schedule will be shared soon.",
+            "important": true,
+            "createdAt": "2026-02-05T10:00:00Z",
+            "expiresAt": "2026-02-22T23:59:59Z"
+        },
+        "notice002": {
+            "title": "Annual Tech Fest - TechNova 2026",
+            "category": "Events",
+            "content": "Registration for TechNova 2026 is now open. Last date to register: Feb 20, 2026.",
+            "important": false,
+            "createdAt": "2026-02-03T09:00:00Z",
+            "expiresAt": "2026-02-28T23:59:59Z"
+        },
+        "notice003": {
+            "title": "Library Timing Change",
+            "category": "General",
+            "content": "Library will remain open until 10 PM during exam period.",
+            "important": false,
+            "createdAt": "2026-02-01T11:00:00Z",
+            "expiresAt": "2026-03-01T23:59:59Z"
+        },
+        "notice004": {
+            "title": "Project Submission Deadline Extended",
+            "category": "Academic",
+            "content": "Final year project submission deadline has been extended to March 10, 2026.",
+            "important": true,
+            "createdAt": "2026-01-30T14:00:00Z",
+            "expiresAt": "2026-03-10T23:59:59Z"
+        },
+        "notice005": {
+            "title": "Campus Placement Drive",
+            "category": "Academic",
+            "content": "Google and Microsoft will visit campus on Feb 25-26. Eligible students should register by Feb 15.",
+            "important": true,
+            "createdAt": "2026-02-04T08:00:00Z",
+            "expiresAt": "2026-02-26T23:59:59Z"
+        },
+        "notice006": {
+            "title": "Holiday Notice - Maha Shivaratri",
+            "category": "General",
+            "content": "The institution will remain closed on Feb 26, 2026 on account of Maha Shivaratri.",
+            "important": false,
+            "createdAt": "2026-02-02T10:00:00Z",
+            "expiresAt": "2026-02-27T00:00:00Z"
+        }
+    }
+}

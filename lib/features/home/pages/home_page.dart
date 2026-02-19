@@ -1,0 +1,348 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/routes/app_routes.dart';
+import '../../../shared/utils/responsive_layout.dart';
+import '../widgets/feature_tile.dart';
+
+/// Home page with animated feature grid after login.
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
+  late AnimationController _headerController;
+  late AnimationController _gridController;
+  late Animation<double> _headerFade;
+  late Animation<Offset> _headerSlide;
+
+  // Student data
+  String _studentName = 'Student';
+  String _studentClass = '';
+  String _studentAuid = '';
+
+  final List<_FeatureData> _features = [
+    _FeatureData(
+      title: 'Feedback',
+      subtitle: 'Share your thoughts',
+      icon: Icons.feedback_outlined,
+      color: AppColors.feedbackColor,
+      route: AppRoutes.feedback,
+    ),
+    _FeatureData(
+      title: 'Complaints',
+      subtitle: 'Report issues',
+      icon: Icons.report_problem_outlined,
+      color: AppColors.complaintColor,
+      route: AppRoutes.complaint,
+    ),
+    _FeatureData(
+      title: 'Syllabus',
+      subtitle: 'Course structure',
+      icon: Icons.menu_book_outlined,
+      color: AppColors.syllabusColor,
+      route: AppRoutes.syllabus,
+    ),
+    _FeatureData(
+      title: 'Resources',
+      subtitle: 'Books, Notes & PYQs',
+      icon: Icons.library_books_outlined,
+      color: AppColors.resourcesColor,
+      route: AppRoutes.resources,
+    ),
+    _FeatureData(
+      title: 'Attendance',
+      subtitle: 'Track & alerts',
+      icon: Icons.calendar_today_outlined,
+      color: AppColors.attendanceColor,
+      route: AppRoutes.attendance,
+    ),
+    _FeatureData(
+      title: 'Notices',
+      subtitle: 'Announcements',
+      icon: Icons.campaign_outlined,
+      color: AppColors.noticesColor,
+      route: AppRoutes.notices,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Load student data from Firebase
+    _loadStudentData();
+    
+    // Header animation
+    _headerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _headerFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _headerController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+    _headerSlide = Tween<Offset>(
+      begin: const Offset(0, -0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _headerController,
+        curve: const Interval(0.0, 0.8, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    // Grid animation
+    _gridController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    // Start animations
+    _headerController.forward();
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) _gridController.forward();
+    });
+  }
+
+  Future<void> _loadStudentData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final auid = prefs.getString('logged_in_auid');
+      
+      if (auid != null && auid.isNotEmpty) {
+        final database = FirebaseDatabase.instanceFor(
+          app: Firebase.app(),
+          databaseURL: 'https://studentsupporttest-default-rtdb.asia-southeast1.firebasedatabase.app',
+        ).ref();
+        
+        final snapshot = await database.child('users').child(auid).get();
+        
+        if (snapshot.exists && mounted) {
+          final userData = Map<String, dynamic>.from(snapshot.value as Map);
+          setState(() {
+            _studentName = userData['name'] ?? 'Student';
+            _studentClass = userData['department'] ?? '';
+            _studentAuid = auid;
+          });
+        }
+      }
+    } catch (e) {
+      // Handle error silently, keep default values
+    }
+  }
+
+
+  @override
+  void dispose() {
+    _headerController.dispose();
+    _gridController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.surfaceLight,
+      body: Column(
+        children: [
+          // Header section
+          _buildHeader(context),
+          // Features grid
+          Expanded(
+            child: _buildFeaturesGrid(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return SlideTransition(
+      position: _headerSlide,
+      child: FadeTransition(
+        opacity: _headerFade,
+        child: Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(32),
+              bottomRight: Radius.circular(32),
+            ),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top row with avatar and notification
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryWhite,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primaryGold.withOpacity(0.3),
+                                    blurRadius: 12,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.person_rounded,
+                                color: AppColors.primaryDarkBlue,
+                                size: 30,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Hi! $_studentName',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primaryWhite,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  if (_studentClass.isNotEmpty)
+                                    Text(
+                                      _studentClass,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.primaryWhite.withOpacity(0.8),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  if (_studentAuid.isNotEmpty)
+                                    Text(
+                                      _studentAuid,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.primaryWhite.withOpacity(0.6),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryWhite.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.notifications_outlined,
+                          color: AppColors.primaryWhite,
+                          size: 22,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeaturesGrid(BuildContext context) {
+    final columns = ResponsiveLayout.gridColumns(context);
+    final spacing = ResponsiveLayout.spacing(context);
+    final padding = ResponsiveLayout.padding(context);
+
+    return AnimatedBuilder(
+      animation: _gridController,
+      builder: (context, child) {
+        return Padding(
+          padding: padding.copyWith(top: 20),
+          child: GridView.builder(
+            physics: const BouncingScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              crossAxisSpacing: spacing,
+              mainAxisSpacing: spacing,
+              childAspectRatio: 0.95,
+            ),
+            itemCount: _features.length,
+            itemBuilder: (context, index) {
+              // Staggered animation for each tile
+              final startInterval = (index * 0.08).clamp(0.0, 0.5);
+              final endInterval = (startInterval + 0.4).clamp(0.0, 1.0);
+              
+              final itemAnimation = CurvedAnimation(
+                parent: _gridController,
+                curve: Interval(startInterval, endInterval, curve: Curves.easeOutCubic),
+              );
+
+              return FadeTransition(
+                opacity: itemAnimation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.4),
+                    end: Offset.zero,
+                  ).animate(itemAnimation),
+                  child: FeatureTile(
+                    title: _features[index].title,
+                    subtitle: _features[index].subtitle,
+                    icon: _features[index].icon,
+                    color: _features[index].color,
+                    index: index,
+                    onTap: () {
+                      AppRoutes.navigateTo(context, _features[index].route);
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Feature data model
+class _FeatureData {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final String route;
+
+  _FeatureData({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.route,
+  });
+}

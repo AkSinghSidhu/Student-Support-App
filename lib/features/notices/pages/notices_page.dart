@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../core/services/notice_service.dart';
 
 /// Notices page with announcements list and filters.
 class NoticesPage extends StatefulWidget {
@@ -14,16 +15,10 @@ class _NoticesPageState extends State<NoticesPage> {
   String _selectedFilter = 'All';
   final List<String> _filters = ['All', 'Academic', 'Events', 'Exam', 'General'];
 
-  final List<Map<String, dynamic>> _notices = [
-    {'title': 'Mid Semester Exam Schedule', 'category': 'Exam', 'date': '2026-02-10', 'important': true},
-    {'title': 'Annual Tech Fest Registration', 'category': 'Events', 'date': '2026-02-08', 'important': false},
-    {'title': 'Library Timing Change', 'category': 'General', 'date': '2026-02-05', 'important': false},
-    {'title': 'Project Submission Deadline', 'category': 'Academic', 'date': '2026-02-03', 'important': true},
-    {'title': 'Holiday Notice - Republic Day', 'category': 'General', 'date': '2026-01-26', 'important': false},
-  ];
-
-  List<Map<String, dynamic>> get _filteredNotices =>
-      _selectedFilter == 'All' ? _notices : _notices.where((n) => n['category'] == _selectedFilter).toList();
+  List<Map<String, dynamic>> _filteredNotices(List<Map<String, dynamic>> notices) =>
+      _selectedFilter == 'All'
+          ? notices
+          : notices.where((n) => n['category'] == _selectedFilter).toList();
 
   @override
   Widget build(BuildContext context) {
@@ -61,19 +56,47 @@ class _NoticesPageState extends State<NoticesPage> {
               },
             ),
           ),
-          // Notices list
+          // Notices list from Firebase
           Expanded(
-            child: _filteredNotices.isEmpty
-                ? const Center(child: Text('No notices found'))
-                : ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: _filteredNotices.length,
-                    itemBuilder: (c, i) => _buildNoticeCard(_filteredNotices[i]),
-                  ),
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: NoticeService().noticesStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error loading notices: ${snapshot.error}'));
+                }
+
+                final notices = snapshot.data ?? [];
+                final filtered = _filteredNotices(notices);
+
+                if (filtered.isEmpty) {
+                  return const Center(child: Text('No notices found'));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: filtered.length,
+                  itemBuilder: (c, i) => _buildNoticeCard(filtered[i]),
+                );
+              },
+            ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatDate(String isoDate) {
+    try {
+      final dt = DateTime.parse(isoDate);
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+    } catch (_) {
+      return isoDate;
+    }
   }
 
   Widget _buildNoticeCard(Map<String, dynamic> notice) {
@@ -101,7 +124,7 @@ class _NoticesPageState extends State<NoticesPage> {
             ),
           ],
           const Spacer(),
-          Text(notice['date'], style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+          Text(_formatDate(notice['date']), style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
         ]),
         const SizedBox(height: 10),
         Text(notice['title'], style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),

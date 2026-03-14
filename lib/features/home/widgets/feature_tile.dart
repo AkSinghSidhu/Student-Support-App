@@ -73,8 +73,8 @@ class _FeatureTileState extends State<FeatureTile>
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
       onTap: widget.onTap,
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
+      child: ListenableBuilder(
+        listenable: _scaleAnimation,
         builder: (context, child) {
           return Transform.scale(
             scale: _scaleAnimation.value,

@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../shared/utils/responsive_layout.dart';
 import '../widgets/feature_tile.dart';
+import '../../../core/database_service.dart';
 import '../../../core/app_constants.dart';
 
 /// Home page with animated feature grid after login.
@@ -121,10 +122,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       final auid = prefs.getString('logged_in_auid');
 
       if (auid != null && auid.isNotEmpty) {
-        final database = FirebaseDatabase.instanceFor(
-          app: Firebase.app(),
-          databaseURL: AppConstants.firebaseDbUrl,
-        ).ref();
+        final database = DatabaseService.db;
 
         final snapshot = await database.child('users').child(auid).get();
 
@@ -294,8 +292,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final spacing = ResponsiveLayout.spacing(context);
     final padding = ResponsiveLayout.padding(context);
 
-    return AnimatedBuilder(
-      animation: _gridController,
+    return ListenableBuilder(
+      listenable: _gridController,
       builder: (context, child) {
         return Padding(
           padding: padding.copyWith(top: 20),

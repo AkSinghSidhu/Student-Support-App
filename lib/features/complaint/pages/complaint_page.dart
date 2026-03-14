@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/services/cache_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../../core/queue_service.dart';
+import '../../../core/database_service.dart';
 import '../../../core/app_constants.dart';
 
 /// Complaint submission page with form for reporting issues.
@@ -76,12 +79,6 @@ class _ComplaintPageState extends State<ComplaintPage>
           throw Exception('User not logged in');
         }
 
-        final database = FirebaseDatabase.instanceFor(
-          app: Firebase.app(),
-          databaseURL: AppConstants.firebaseDbUrl,
-        ).ref();
-        
-        final complaintRef = database.child('complaints').push();
         final complaintData = {
           'userId': auid,
           'subject': _subjectController.text.trim(),
@@ -92,8 +89,16 @@ class _ComplaintPageState extends State<ComplaintPage>
           'createdAt': DateTime.now().toIso8601String(),
         };
 
-        try {
+        // Check connectivity
+        final connectivityResult = await Connectivity().checkConnectivity();
+        final isOnline = !connectivityResult.contains(ConnectivityResult.none);
+
+        if (isOnline) {
+          final database = DatabaseService.db;
+          final complaintRef = database.child('complaints').child(auid).push();
+          
           await complaintRef.set(complaintData).timeout(const Duration(seconds: 5));
+          
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -105,16 +110,17 @@ class _ComplaintPageState extends State<ComplaintPage>
             );
             Navigator.pop(context);
           }
-        } catch (e) {
-          // Timeout or network error - cache offline
-          await CacheService.cachePendingComplaint(complaintData);
+        } else {
+          // Offline - Add to Queue
+          await QueueService.addToQueue('complaint', auid, complaintData);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('Saved offline. Will submit when connected.'),
+                content: const Text('No internet — saved as draft, will send automatically when you reconnect'),
                 backgroundColor: AppColors.warning,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                duration: const Duration(seconds: 4),
               ),
             );
             Navigator.pop(context);
@@ -124,10 +130,9 @@ class _ComplaintPageState extends State<ComplaintPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: $e'),
+              content: Text('Error: ${e.toString()}'),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           );
         }

@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'cache_service.dart';
+import '../database_service.dart';
 import '../app_constants.dart';
 
 /// Service to stream notices from Firebase RTDB and send notifications for new ones.
@@ -26,10 +27,7 @@ class NoticeService {
 
   int _notifId = 5000; // offset to avoid collision with attendance notif IDs
 
-  DatabaseReference get _noticesRef => FirebaseDatabase.instanceFor(
-        app: Firebase.app(),
-        databaseURL: AppConstants.firebaseDbUrl,
-      ).ref().child('notices');
+  DatabaseReference get _noticesRef => DatabaseService.db.child('notices');
 
   /// Initialize the notification channel and plugin for notices.
   Future<void> _initNotifications() async {

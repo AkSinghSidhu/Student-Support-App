@@ -78,8 +78,8 @@ class _AnimatedCardState extends State<AnimatedCard>
       onTapUp: widget.onTap != null ? _onTapUp : null,
       onTapCancel: widget.onTap != null ? _onTapCancel : null,
       onTap: widget.onTap,
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
+      child: ListenableBuilder(
+        listenable: _scaleAnimation,
         builder: (context, child) {
           return Transform.scale(
             scale: _scaleAnimation.value,

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/theme_provider.dart';
 import '../core/theme/app_colors.dart';
+import '../core/database_service.dart';
 import '../core/app_constants.dart';
 
 class LoginPage extends StatefulWidget {
@@ -69,10 +70,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     super.dispose();
   }
 
-  final DatabaseReference _database = FirebaseDatabase.instanceFor(
-    app: Firebase.app(),
-    databaseURL: AppConstants.firebaseDbUrl,
-  ).ref();
+  final DatabaseReference _database = DatabaseService.db;
 
   // FIX: Load saved AUID and Remember Me state on app open
   Future<void> _loadRememberMe() async {

@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/services/cache_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../../core/queue_service.dart';
+import '../../../core/database_service.dart';
 import '../../../core/app_constants.dart';
 
 /// Feedback submission page with form for user feedback.
@@ -105,11 +108,6 @@ class _FeedbackPageState extends State<FeedbackPage>
           throw Exception('User not logged in');
         }
 
-        final database = FirebaseDatabase.instanceFor(
-          app: Firebase.app(),
-          databaseURL: AppConstants.firebaseDbUrl,
-        ).ref();
-        final feedbackRef = database.child('feedback').push();
         final feedbackData = {
           'userId': auid,
           'department': _selectedDepartment,
@@ -121,8 +119,16 @@ class _FeedbackPageState extends State<FeedbackPage>
           'createdAt': DateTime.now().toIso8601String(),
         };
 
-        try {
+        // Check connectivity
+        final connectivityResult = await Connectivity().checkConnectivity();
+        final isOnline = !connectivityResult.contains(ConnectivityResult.none);
+
+        if (isOnline) {
+          final database = DatabaseService.db;
+          final feedbackRef = database.child('feedback').child(auid).push();
+          
           await feedbackRef.set(feedbackData).timeout(const Duration(seconds: 5));
+          
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -134,16 +140,17 @@ class _FeedbackPageState extends State<FeedbackPage>
             );
             Navigator.pop(context);
           }
-        } catch (e) {
-          // Timeout or network error - cache offline
-          await CacheService.cachePendingFeedback(feedbackData);
+        } else {
+          // Offline - Add to Queue
+          await QueueService.addToQueue('feedback', auid, feedbackData);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('Saved offline. Will submit when connected.'),
+                content: const Text('No internet — saved as draft, will send automatically when you reconnect'),
                 backgroundColor: AppColors.warning,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                duration: const Duration(seconds: 4),
               ),
             );
             Navigator.pop(context);
@@ -151,7 +158,13 @@ class _FeedbackPageState extends State<FeedbackPage>
         }
       } catch (e) {
         if (mounted) {
-          _showError('Error processing feedback: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
       } finally {
         if (mounted) {

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/services/cache_service.dart';
+import '../../../core/database_service.dart';
 import '../../../core/app_constants.dart';
 
 /// Attendance page with summary and push notification alerts.
@@ -67,10 +68,7 @@ class _AttendancePageState extends State<AttendancePage> {
       }
 
       // 2. Fetch fresh data from Firebase behind the scenes
-      final database = FirebaseDatabase.instanceFor(
-        app: Firebase.app(),
-        databaseURL: AppConstants.firebaseDbUrl,
-      ).ref();
+      final database = DatabaseService.db;
 
       final snapshot = await database.child('attendance').child(auid).child('subjects').get();
 

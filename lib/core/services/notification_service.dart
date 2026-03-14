@@ -76,8 +76,13 @@ class NotificationService {
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
     // Get FCM token for server-side push (for future use)
-    String? token = await _firebaseMessaging.getToken();
-    developer.log('FCM Token: $token', name: 'NotificationService');
+    try {
+      String? token = await _firebaseMessaging.getToken();
+      developer.log('FCM Token: $token', name: 'NotificationService');
+    } catch (e) {
+      developer.log('Warning: Failed to get FCM token: $e', name: 'NotificationService');
+      // Non-fatal error. The app should continue to load.
+    }
   }
 
   void _handleForegroundMessage(RemoteMessage message) {

@@ -71,13 +71,15 @@ class _AnimatedCardState extends State<AnimatedCard>
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTapDown: widget.onTap != null ? _onTapDown : null,
       onTapUp: widget.onTap != null ? _onTapUp : null,
       onTapCancel: widget.onTap != null ? _onTapCancel : null,
       onTap: widget.onTap,
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
+      child: ListenableBuilder(
+        listenable: _scaleAnimation,
         builder: (context, child) {
           return Transform.scale(
             scale: _scaleAnimation.value,
@@ -89,7 +91,7 @@ class _AnimatedCardState extends State<AnimatedCard>
                 boxShadow: _isPressed
                     ? [
                         BoxShadow(
-                          color: Colors.black.withAlpha(25),
+                          color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withAlpha(25),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),

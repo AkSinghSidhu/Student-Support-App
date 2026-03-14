@@ -59,24 +59,26 @@ class _ResourcesPageState extends State<ResourcesPage>
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppColors.surfaceLight,
+      backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       appBar: const CustomAppBar(title: 'Resources'),
       body: FadeTransition(
         opacity: _fadeAnim,
         child: Column(
           children: [
             // Tab bar
-            _buildTabBar(),
+            _buildTabBar(isDarkMode),
             // Tab views
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 physics: const BouncingScrollPhysics(),
                 children: [
-                  _buildResourceList(_books, 'book'),
-                  _buildResourceList(_notes, 'note'),
-                  _buildResourceList(_pyqs, 'pyq'),
+                  _buildResourceList(_books, 'book', isDarkMode),
+                  _buildResourceList(_notes, 'note', isDarkMode),
+                  _buildResourceList(_pyqs, 'pyq', isDarkMode),
                 ],
               ),
             ),
@@ -86,12 +88,12 @@ class _ResourcesPageState extends State<ResourcesPage>
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(bool isDarkMode) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -108,7 +110,7 @@ class _ResourcesPageState extends State<ResourcesPage>
           borderRadius: BorderRadius.circular(10),
         ),
         labelColor: AppColors.primaryWhite,
-        unselectedLabelColor: AppColors.textSecondary,
+        unselectedLabelColor: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
         labelStyle: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
@@ -123,7 +125,7 @@ class _ResourcesPageState extends State<ResourcesPage>
     );
   }
 
-  Widget _buildResourceList(List<Map<String, dynamic>> items, String type) {
+  Widget _buildResourceList(List<Map<String, dynamic>> items, String type, bool isDarkMode) {
     if (items.isEmpty) {
       return Center(
         child: Column(
@@ -132,14 +134,14 @@ class _ResourcesPageState extends State<ResourcesPage>
             Icon(
               Icons.folder_open_outlined,
               size: 64,
-              color: AppColors.textMuted.withOpacity(0.4),
+              color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.4),
             ),
             const SizedBox(height: 16),
             Text(
               'No resources available',
               style: TextStyle(
                 fontSize: 16,
-                color: AppColors.textMuted,
+                color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
               ),
             ),
           ],
@@ -152,12 +154,12 @@ class _ResourcesPageState extends State<ResourcesPage>
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       itemCount: items.length,
       itemBuilder: (context, index) {
-        return _buildResourceCard(items[index], type);
+        return _buildResourceCard(items[index], type, isDarkMode);
       },
     );
   }
 
-  Widget _buildResourceCard(Map<String, dynamic> item, String type) {
+  Widget _buildResourceCard(Map<String, dynamic> item, String type, bool isDarkMode) {
     IconData icon;
     Color color;
     String subtitle;
@@ -187,7 +189,7 @@ class _ResourcesPageState extends State<ResourcesPage>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -232,10 +234,10 @@ class _ResourcesPageState extends State<ResourcesPage>
                     children: [
                       Text(
                         item['title'],
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -245,7 +247,7 @@ class _ResourcesPageState extends State<ResourcesPage>
                         subtitle,
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                         ),
                       ),
                     ],

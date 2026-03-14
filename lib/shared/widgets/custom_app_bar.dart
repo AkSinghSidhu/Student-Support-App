@@ -23,10 +23,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       decoration: useGradient
-          ? const BoxDecoration(
-              gradient: LinearGradient(
+          ? BoxDecoration(
+              color: isDarkMode ? AppColors.surfaceDark : null,
+              gradient: isDarkMode ? null : const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
@@ -35,8 +38,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ],
               ),
             )
-          : const BoxDecoration(
-              color: AppColors.primaryDarkBlue,
+          : BoxDecoration(
+              color: isDarkMode ? AppColors.surfaceDark : AppColors.primaryDarkBlue,
             ),
       child: SafeArea(
         bottom: false,
@@ -94,12 +97,15 @@ class GradientHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       width: double.infinity,
       height: height,
-      decoration: const BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: isDarkMode ? AppColors.cardBackgroundDark : null,
+        gradient: isDarkMode ? null : AppColors.primaryGradient,
+        borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
         ),

@@ -60,30 +60,32 @@ class _SyllabusPageState extends State<SyllabusPage>
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppColors.surfaceLight,
+      backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       appBar: const CustomAppBar(title: 'Syllabus'),
       body: FadeTransition(
         opacity: _fadeAnim,
         child: Column(
           children: [
             // Semester selector
-            _buildSemesterSelector(),
+            _buildSemesterSelector(isDarkMode),
             const SizedBox(height: 16),
             // Subject list
-            Expanded(child: _buildSubjectList()),
+            Expanded(child: _buildSubjectList(isDarkMode)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSemesterSelector() {
+  Widget _buildSemesterSelector(bool isDarkMode) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -124,7 +126,7 @@ class _SyllabusPageState extends State<SyllabusPage>
                     fontWeight: FontWeight.w600,
                     color: isSelected
                         ? AppColors.primaryWhite
-                        : AppColors.textSecondary,
+                        : (isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                   ),
                 ),
               ),
@@ -135,7 +137,7 @@ class _SyllabusPageState extends State<SyllabusPage>
     );
   }
 
-  Widget _buildSubjectList() {
+  Widget _buildSubjectList(bool isDarkMode) {
     final subjects = _syllabusData[_selectedSemester] ?? [];
     
     if (subjects.isEmpty) {
@@ -146,14 +148,14 @@ class _SyllabusPageState extends State<SyllabusPage>
             Icon(
               Icons.menu_book_outlined,
               size: 64,
-              color: AppColors.textMuted.withOpacity(0.4),
+              color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.4),
             ),
             const SizedBox(height: 16),
             Text(
               'No syllabus available',
               style: TextStyle(
                 fontSize: 16,
-                color: AppColors.textMuted,
+                color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
               ),
             ),
           ],
@@ -173,7 +175,7 @@ class _SyllabusPageState extends State<SyllabusPage>
           duration: const Duration(milliseconds: 300),
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: AppColors.cardBackground,
+            color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isExpanded
@@ -246,10 +248,10 @@ class _SyllabusPageState extends State<SyllabusPage>
                     const SizedBox(height: 10),
                     Text(
                       subject['name'],
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                       ),
                     ),
                     if (isExpanded) ...[
@@ -260,7 +262,7 @@ class _SyllabusPageState extends State<SyllabusPage>
                         'Syllabus content will be loaded from Firebase. Tap to view detailed topics, units, and course objectives.',
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.textSecondary,
+                          color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                           height: 1.5,
                         ),
                       ),

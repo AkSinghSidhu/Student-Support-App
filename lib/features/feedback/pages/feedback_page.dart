@@ -4,6 +4,11 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../core/services/cache_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../../core/queue_service.dart';
+import '../../../core/database_service.dart';
+import '../../../core/app_constants.dart';
 
 /// Feedback submission page with form for user feedback.
 class FeedbackPage extends StatefulWidget {
@@ -103,14 +108,7 @@ class _FeedbackPageState extends State<FeedbackPage>
           throw Exception('User not logged in');
         }
 
-        final database = FirebaseDatabase.instanceFor(
-          app: Firebase.app(),
-          databaseURL:
-              'https://studentsupporttest-default-rtdb.asia-southeast1.firebasedatabase.app',
-        ).ref();
-        final feedbackRef = database.child('feedback').push();
-
-        await feedbackRef.set({
+        final feedbackData = {
           'userId': auid,
           'department': _selectedDepartment,
           'teacher': _selectedTeacher,
@@ -119,24 +117,54 @@ class _FeedbackPageState extends State<FeedbackPage>
           'message': _feedbackController.text.trim(),
           'status': 'pending',
           'createdAt': DateTime.now().toIso8601String(),
-        });
+        };
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Feedback submitted successfully!'),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+        // Check connectivity
+        final connectivityResult = await Connectivity().checkConnectivity();
+        final isOnline = !connectivityResult.contains(ConnectivityResult.none);
+
+        if (isOnline) {
+          final database = DatabaseService.db;
+          final feedbackRef = database.child('feedback').child(auid).push();
+          
+          await feedbackRef.set(feedbackData).timeout(const Duration(seconds: 5));
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Feedback submitted successfully!'),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-            ),
-          );
-          Navigator.pop(context);
+            );
+            Navigator.pop(context);
+          }
+        } else {
+          // Offline - Add to Queue
+          await QueueService.addToQueue('feedback', auid, feedbackData);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('No internet — saved as draft, will send automatically when you reconnect'),
+                backgroundColor: AppColors.warning,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                duration: const Duration(seconds: 4),
+              ),
+            );
+            Navigator.pop(context);
+          }
         }
       } catch (e) {
         if (mounted) {
-          _showError('Error submitting feedback: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
       } finally {
         if (mounted) {
@@ -163,8 +191,10 @@ class _FeedbackPageState extends State<FeedbackPage>
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppColors.surfaceLight,
+      backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       appBar: const CustomAppBar(title: 'Feedback'),
       body: FadeTransition(
         opacity: _fadeAnim,
@@ -177,40 +207,40 @@ class _FeedbackPageState extends State<FeedbackPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header card
-                _buildHeaderCard(),
+                _buildHeaderCard(isDarkMode),
                 const SizedBox(height: 24),
 
                 // Department Selector
-                _buildSectionLabel('Department'),
+                _buildSectionLabel('Department', isDarkMode),
                 const SizedBox(height: 10),
-                _buildDepartmentDropdown(),
+                _buildDepartmentDropdown(isDarkMode),
                 const SizedBox(height: 24),
                 
                 // Teacher Selector (Dependent)
                 // Only show if department is selected
                 if (_selectedDepartment != null) ...[
-                  _buildSectionLabel('Teacher'),
+                  _buildSectionLabel('Teacher', isDarkMode),
                   const SizedBox(height: 10),
-                  _buildTeacherDropdown(),
+                  _buildTeacherDropdown(isDarkMode),
                   const SizedBox(height: 24),
                 ],
                 
                 // Category selector
-                _buildSectionLabel('Category'),
+                _buildSectionLabel('Category', isDarkMode),
                 const SizedBox(height: 10),
-                _buildCategorySelector(),
+                _buildCategorySelector(isDarkMode),
                 const SizedBox(height: 24),
                 
                 // Rating
-                _buildSectionLabel('Rating'),
+                _buildSectionLabel('Rating', isDarkMode),
                 const SizedBox(height: 10),
-                _buildRatingSelector(),
+                _buildRatingSelector(isDarkMode),
                 const SizedBox(height: 24),
                 
                 // Feedback text
-                _buildSectionLabel('Your Feedback'),
+                _buildSectionLabel('Your Feedback', isDarkMode),
                 const SizedBox(height: 10),
-                _buildFeedbackInput(),
+                _buildFeedbackInput(isDarkMode),
                 const SizedBox(height: 32),
                 
                 // Submit button
@@ -223,37 +253,38 @@ class _FeedbackPageState extends State<FeedbackPage>
     );
   }
 
-  Widget _buildDepartmentDropdown() {
+  Widget _buildDepartmentDropdown(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.textMuted.withOpacity(0.3),
+          color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
         ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedDepartment,
-          hint: const Text(
+          hint: Text(
             'Select Department',
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
             ),
           ),
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+          dropdownColor: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
           items: _departmentTeachers.keys.map((String department) {
             return DropdownMenuItem<String>(
               value: department,
               child: Text(
                 department,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+                  color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                 ),
               ),
             );
@@ -269,39 +300,40 @@ class _FeedbackPageState extends State<FeedbackPage>
     );
   }
 
-  Widget _buildTeacherDropdown() {
+  Widget _buildTeacherDropdown(bool isDarkMode) {
     final teachers = _departmentTeachers[_selectedDepartment] ?? [];
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.textMuted.withOpacity(0.3),
+          color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
         ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedTeacher,
-          hint: const Text(
+          hint: Text(
             'Select Teacher',
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
             ),
           ),
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+          dropdownColor: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
           items: teachers.map((String teacher) {
             return DropdownMenuItem<String>(
               value: teacher,
               child: Text(
                 teacher,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+                  color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                 ),
               ),
             );
@@ -316,7 +348,7 @@ class _FeedbackPageState extends State<FeedbackPage>
     );
   }
 
-  Widget _buildHeaderCard() {
+  Widget _buildHeaderCard(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -346,7 +378,7 @@ class _FeedbackPageState extends State<FeedbackPage>
             ),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -355,15 +387,15 @@ class _FeedbackPageState extends State<FeedbackPage>
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'Help us improve your experience',
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textSecondary,
+                    color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                   ),
                 ),
               ],
@@ -374,18 +406,18 @@ class _FeedbackPageState extends State<FeedbackPage>
     );
   }
 
-  Widget _buildSectionLabel(String label) {
+  Widget _buildSectionLabel(String label, bool isDarkMode) {
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
+        color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
       ),
     );
   }
 
-  Widget _buildCategorySelector() {
+  Widget _buildCategorySelector(bool isDarkMode) {
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -399,12 +431,12 @@ class _FeedbackPageState extends State<FeedbackPage>
             decoration: BoxDecoration(
               color: isSelected
                   ? AppColors.primaryDarkBlue
-                  : AppColors.cardBackground,
+                  : (isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected
                     ? AppColors.primaryDarkBlue
-                    : AppColors.textMuted.withOpacity(0.3),
+                    : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
               ),
             ),
             child: Text(
@@ -414,7 +446,7 @@ class _FeedbackPageState extends State<FeedbackPage>
                 fontWeight: FontWeight.w500,
                 color: isSelected
                     ? AppColors.primaryWhite
-                    : AppColors.textSecondary,
+                    : (isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
               ),
             ),
           ),
@@ -423,7 +455,7 @@ class _FeedbackPageState extends State<FeedbackPage>
     );
   }
 
-  Widget _buildRatingSelector() {
+  Widget _buildRatingSelector(bool isDarkMode) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: List.generate(5, (index) {
@@ -435,7 +467,7 @@ class _FeedbackPageState extends State<FeedbackPage>
             margin: const EdgeInsets.only(right: 8),
             child: Icon(
               isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
-              color: isSelected ? AppColors.primaryGold : AppColors.textMuted,
+              color: isSelected ? AppColors.primaryGold : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight),
               size: 36,
             ),
           ),
@@ -444,25 +476,26 @@ class _FeedbackPageState extends State<FeedbackPage>
     );
   }
 
-  Widget _buildFeedbackInput() {
+  Widget _buildFeedbackInput(bool isDarkMode) {
     return TextFormField(
       controller: _feedbackController,
       maxLines: 5,
-      style: const TextStyle(fontSize: 14),
+      style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
       decoration: InputDecoration(
         hintText: 'Write your feedback here...',
+        hintStyle: TextStyle(color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
         filled: true,
-        fillColor: AppColors.cardBackground,
+        fillColor: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: AppColors.textMuted.withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: AppColors.textMuted.withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
           ),
         ),
       ),

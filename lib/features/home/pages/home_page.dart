@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../shared/utils/responsive_layout.dart';
 import '../widgets/feature_tile.dart';
+import '../../../core/database_service.dart';
+import '../../../core/app_constants.dart';
 
 /// Home page with animated feature grid after login.
 class HomePage extends StatefulWidget {
@@ -74,10 +78,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    
+
     // Load student data from Firebase
     _loadStudentData();
-    
+
     // Header animation
     _headerController = AnimationController(
       vsync: this,
@@ -116,22 +120,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     try {
       final prefs = await SharedPreferences.getInstance();
       final auid = prefs.getString('logged_in_auid');
-      
+
       if (auid != null && auid.isNotEmpty) {
-        final database = FirebaseDatabase.instanceFor(
-          app: Firebase.app(),
-          databaseURL: 'https://studentsupporttest-default-rtdb.asia-southeast1.firebasedatabase.app',
-        ).ref();
-        
+        final database = DatabaseService.db;
+
         final snapshot = await database.child('users').child(auid).get();
-        
+
         if (snapshot.exists && mounted) {
-          final userData = Map<String, dynamic>.from(snapshot.value as Map);
-          setState(() {
-            _studentName = userData['name'] ?? 'Student';
-            _studentClass = userData['department'] ?? '';
-            _studentAuid = auid;
-          });
+          // FIX: Safe type check — Firebase may return String instead of Map
+          final rawValue = snapshot.value;
+          if (rawValue is Map) {
+            final userData = Map<String, dynamic>.from(rawValue);
+            setState(() {
+              _studentName = userData['name'] ?? 'Student';
+              _studentClass = userData['department'] ?? '';
+              _studentAuid = auid;
+            });
+          } else {
+            // Data exists but isn't a Map — still show the AUID at minimum
+            setState(() {
+              _studentAuid = auid;
+            });
+          }
         }
       }
     } catch (e) {
@@ -149,31 +159,34 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    
     return Scaffold(
-      backgroundColor: AppColors.surfaceLight,
+      backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       body: Column(
         children: [
           // Header section
-          _buildHeader(context),
+          _buildHeader(context, isDarkMode),
           // Features grid
           Expanded(
-            child: _buildFeaturesGrid(context),
+            child: _buildFeaturesGrid(context, isDarkMode),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, bool isDarkMode) {
     return SlideTransition(
       position: _headerSlide,
       child: FadeTransition(
         opacity: _headerFade,
         child: Container(
           width: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.only(
+          decoration: BoxDecoration(
+            color: isDarkMode ? AppColors.cardBackgroundDark : null,
+            gradient: isDarkMode ? null : AppColors.primaryGradient,
+            borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(32),
               bottomRight: Radius.circular(32),
             ),
@@ -219,10 +232,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 children: [
                                   Text(
                                     'Hi! $_studentName',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
-                                      color: AppColors.primaryWhite,
+                                      color: isDarkMode ? AppColors.textPrimaryDark : AppColors.primaryWhite,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -232,7 +245,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       _studentClass,
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: AppColors.primaryWhite.withOpacity(0.8),
+                                        color: isDarkMode ? AppColors.textSecondaryDark : AppColors.primaryWhite.withOpacity(0.8),
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -241,7 +254,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       _studentAuid,
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: AppColors.primaryWhite.withOpacity(0.6),
+                                        color: isDarkMode ? AppColors.textMutedDark : AppColors.primaryWhite.withOpacity(0.6),
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -257,9 +270,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           color: AppColors.primaryWhite.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.notifications_outlined,
-                          color: AppColors.primaryWhite,
+                          color: isDarkMode ? AppColors.textPrimaryDark : AppColors.primaryWhite,
                           size: 22,
                         ),
                       ),
@@ -274,13 +287,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildFeaturesGrid(BuildContext context) {
+  Widget _buildFeaturesGrid(BuildContext context, bool isDarkMode) {
     final columns = ResponsiveLayout.gridColumns(context);
     final spacing = ResponsiveLayout.spacing(context);
     final padding = ResponsiveLayout.padding(context);
 
-    return AnimatedBuilder(
-      animation: _gridController,
+    return ListenableBuilder(
+      listenable: _gridController,
       builder: (context, child) {
         return Padding(
           padding: padding.copyWith(top: 20),
@@ -297,7 +310,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               // Staggered animation for each tile
               final startInterval = (index * 0.08).clamp(0.0, 0.5);
               final endInterval = (startInterval + 0.4).clamp(0.0, 1.0);
-              
+
               final itemAnimation = CurvedAnimation(
                 parent: _gridController,
                 curve: Interval(startInterval, endInterval, curve: Curves.easeOutCubic),

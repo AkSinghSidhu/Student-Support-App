@@ -3,7 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../core/services/notification_service.dart';
+import 'package:provider/provider.dart';
+import '../core/theme/theme_provider.dart';
+import '../core/theme/app_colors.dart';
+import '../core/database_service.dart';
+import '../core/app_constants.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,12 +23,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   bool _obscurePassword = true;
   bool _isLoading = false;
   bool _rememberMe = false;
-  
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  // Custom colors from the provided palette
   static const Color primaryDarkBlue = Color(0xFF020065);
   static const Color primaryBlack = Color(0xFF000000);
   static const Color primaryWhite = Color(0xFFFFFFFF);
@@ -37,14 +40,14 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
       ),
     );
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -54,8 +57,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
       ),
     );
-    
+
     _animationController.forward();
+    _loadRememberMe(); // FIX: Load saved AUID if Remember Me was checked
   }
 
   @override
@@ -66,41 +70,61 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     super.dispose();
   }
 
-  // Firebase Database reference with correct regional URL
-  final DatabaseReference _database = FirebaseDatabase.instanceFor(
-    app: Firebase.app(),
-    databaseURL: 'https://studentsupporttest-default-rtdb.asia-southeast1.firebasedatabase.app',
-  ).ref();
+  final DatabaseReference _database = DatabaseService.db;
+
+  // FIX: Load saved AUID and Remember Me state on app open
+  Future<void> _loadRememberMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rememberMe = prefs.getBool('remember_me') ?? false;
+    if (rememberMe) {
+      final savedAuid = prefs.getString('logged_in_auid') ?? '';
+      setState(() {
+        _rememberMe = true;
+        _auidController.text = savedAuid;
+      });
+    }
+  }
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      
+
       final enteredAuid = _auidController.text.trim();
       final enteredPassword = _passwordController.text;
-      
+
       try {
-        // Query Firebase Realtime Database for the user
-        final snapshot = await _database.child('users').child(enteredAuid).get();
-        
+        // FIX: Try 'users' first, then fall back to 'students'
+        DataSnapshot snapshot = await _database.child('users').child(enteredAuid).get();
+
+        if (!snapshot.exists) {
+          snapshot = await _database.child('students').child(enteredAuid).get();
+        }
+
         if (snapshot.exists) {
-          final userData = Map<String, dynamic>.from(snapshot.value as Map);
-          final storedPassword = userData['password'] as String?;
-          
+          // FIX: Safe type check — Firebase may return String instead of Map
+          final rawValue = snapshot.value;
+
+          if (rawValue is! Map) {
+            setState(() => _isLoading = false);
+            _showErrorSnackBar('Invalid data format in database. Contact admin.');
+            return;
+          }
+
+          final userData = Map<String, dynamic>.from(rawValue);
+          final storedPassword = userData['password']?.toString();
+
           if (storedPassword != null && storedPassword == enteredPassword) {
-            // Always save AUID for current session (home page needs it)
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('logged_in_auid', enteredAuid);
-            
-            // Start real-time attendance monitoring
-            NotificationService().startAttendanceListener(enteredAuid);
-            
-            // If Remember Me is not checked, we'll clear it on logout
-            // For now, just save it so home page can fetch user data
-            
+
+            // FIX: Actually save/clear Remember Me based on checkbox state
+            await prefs.setBool('remember_me', _rememberMe);
+
+            // Attendance alerts are now handled by the background service
+            // (scheduled daily check at 6 PM), no per-login listener needed.
+
             setState(() => _isLoading = false);
-            
-            // Navigate to home page on successful login
+
             if (mounted) {
               Navigator.pushReplacementNamed(context, '/home');
             }
@@ -114,7 +138,20 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         }
       } catch (e) {
         setState(() => _isLoading = false);
-        _showErrorSnackBar('An error occurred. Please check your connection.');
+
+        // FIX: Show actual helpful error instead of generic message
+        final errorStr = e.toString().toLowerCase();
+        if (errorStr.contains('permission') || errorStr.contains('denied')) {
+          _showErrorSnackBar('Access denied. Contact admin to check Firebase rules.');
+        } else if (errorStr.contains('network') ||
+            errorStr.contains('socket') ||
+            errorStr.contains('failed host lookup')) {
+          _showErrorSnackBar('No internet connection. Please try again.');
+        } else if (errorStr.contains('timeout')) {
+          _showErrorSnackBar('Connection timed out. Please try again.');
+        } else {
+          _showErrorSnackBar('Login failed: $e');
+        }
       }
     }
   }
@@ -123,15 +160,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            message,
-            style: const TextStyle(color: Colors.white),
-          ),
+          content: Text(message, style: const TextStyle(color: Colors.white)),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -140,17 +172,16 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    
     return Scaffold(
+      backgroundColor: isDarkMode ? AppColors.surfaceDark : null,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
+        decoration: BoxDecoration(
+          gradient: isDarkMode ? null : const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              primaryDarkBlue,
-              Color(0xFF010033),
-              primaryBlack,
-            ],
+            colors: [primaryDarkBlue, Color(0xFF010033), primaryBlack],
             stops: [0.0, 0.5, 1.0],
           ),
         ),
@@ -165,11 +196,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Logo and Welcome Section
                       _buildHeader(),
                       const SizedBox(height: 32),
-                      
-                      // Login Card
                       _buildLoginCard(),
                     ],
                   ),
@@ -183,71 +211,45 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }
 
   Widget _buildHeader() {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     return Column(
       children: [
-        // Animated Logo Container
         Container(
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: primaryWhite,
+            color: isDarkMode ? AppColors.cardBackgroundDark : primaryWhite,
             borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: primaryGold.withOpacity(0.4),
-                blurRadius: 24,
-                spreadRadius: 3,
-              ),
-              BoxShadow(
-                color: primaryDarkBlue.withOpacity(0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
+            boxShadow: isDarkMode ? [] : [
+              BoxShadow(color: primaryGold.withOpacity(0.4), blurRadius: 24, spreadRadius: 3),
+              BoxShadow(color: primaryDarkBlue.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 8)),
             ],
           ),
-          child: const Icon(
-            Icons.school_rounded,
-            size: 40,
-            color: primaryDarkBlue,
-          ),
+          child: Icon(Icons.school_rounded, size: 40, color: isDarkMode ? primaryGold : primaryDarkBlue),
         ),
         const SizedBox(height: 20),
-        
-        // Welcome Text
         const Text(
           'Welcome Back',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: primaryWhite,
-            letterSpacing: 1.0,
-          ),
+          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: primaryWhite, letterSpacing: 1.0),
         ),
         const SizedBox(height: 6),
         Text(
           'Sign in to continue your journey',
-          style: TextStyle(
-            fontSize: 13,
-            color: primaryWhite.withOpacity(0.7),
-            letterSpacing: 0.4,
-          ),
+          style: TextStyle(fontSize: 13, color: primaryWhite.withOpacity(0.7), letterSpacing: 0.4),
         ),
       ],
     );
   }
 
   Widget _buildLoginCard() {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: primaryWhite,
+        color: isDarkMode ? AppColors.cardBackgroundDark : primaryWhite,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: primaryBlack.withOpacity(0.2),
-            blurRadius: 32,
-            offset: const Offset(0, 16),
-          ),
+        boxShadow: isDarkMode ? [] : [
+          BoxShadow(color: primaryBlack.withOpacity(0.2), blurRadius: 32, offset: const Offset(0, 16)),
         ],
       ),
       child: Form(
@@ -255,43 +257,31 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // AUID Field
-            _buildInputLabel('AUID Number'),
+            _buildInputLabel('AUID Number', isDarkMode),
             const SizedBox(height: 6),
-            _buildAuidField(),
+            _buildAuidField(isDarkMode),
             const SizedBox(height: 14),
-            
-            // Password Field
-            _buildInputLabel('Password'),
+            _buildInputLabel('Password', isDarkMode),
             const SizedBox(height: 6),
-            _buildPasswordField(),
-            const SizedBox(height: 12),
-            
-            // Remember Me & Forgot Password Row
-            _buildRememberForgotRow(),
-            const SizedBox(height: 20),
-            
-            // Login Button
-            _buildLoginButton(),
+            _buildPasswordField(isDarkMode),
+            const SizedBox(height: 10),
+            _buildRememberForgotRow(isDarkMode),
+            const SizedBox(height: 18),
+            _buildLoginButton(isDarkMode),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInputLabel(String label) {
+  Widget _buildInputLabel(String label, bool isDarkMode) {
     return Text(
       label,
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: primaryDarkBlue,
-        letterSpacing: 0.4,
-      ),
+      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDarkMode ? AppColors.textPrimaryDark : primaryDarkBlue, letterSpacing: 0.4),
     );
   }
 
-  Widget _buildAuidField() {
+  Widget _buildAuidField(bool isDarkMode) {
     return TextFormField(
       controller: _auidController,
       keyboardType: TextInputType.number,
@@ -299,149 +289,74 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         FilteringTextInputFormatter.digitsOnly,
         LengthLimitingTextInputFormatter(9),
       ],
-      style: const TextStyle(
-        fontSize: 14,
-        color: primaryBlack,
-        letterSpacing: 1.5,
-      ),
+      style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : primaryBlack, letterSpacing: 1.5),
       decoration: InputDecoration(
         hintText: 'Enter your 9-digit AUID',
-        hintStyle: TextStyle(
-          color: primaryBlack.withOpacity(0.4),
-          fontSize: 13,
-          letterSpacing: 0.5,
-        ),
+        hintStyle: TextStyle(color: (isDarkMode ? AppColors.textPrimaryDark : primaryBlack).withOpacity(0.4), fontSize: 13, letterSpacing: 0.5),
         prefixIcon: Container(
           margin: const EdgeInsets.all(8),
           padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: primaryDarkBlue.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: const Icon(
-            Icons.badge_outlined,
-            color: primaryDarkBlue,
-            size: 16,
-          ),
+          decoration: BoxDecoration(color: (isDarkMode ? primaryGold : primaryDarkBlue).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+          child: Icon(Icons.badge_outlined, color: isDarkMode ? primaryGold : primaryDarkBlue, size: 16),
         ),
         filled: true,
-        fillColor: primaryDarkBlue.withOpacity(0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: primaryGold,
-            width: 1.5,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: Colors.redAccent,
-            width: 1.5,
-          ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 14,
-        ),
+        fillColor: isDarkMode ? AppColors.surfaceDark : primaryDarkBlue.withOpacity(0.05),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: primaryGold, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.redAccent, width: 1.5)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       ),
       validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Please enter your AUID';
-        }
-        if (value.length != 9) {
-          return 'AUID must be exactly 9 digits';
-        }
+        if (value == null || value.isEmpty) return 'Please enter your AUID';
+        if (value.length != 9) return 'AUID must be exactly 9 digits';
         return null;
       },
     );
   }
 
-  Widget _buildPasswordField() {
+  Widget _buildPasswordField(bool isDarkMode) {
     return TextFormField(
       controller: _passwordController,
       obscureText: _obscurePassword,
-      style: const TextStyle(
-        fontSize: 14,
-        color: primaryBlack,
-      ),
+      style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : primaryBlack),
       decoration: InputDecoration(
         hintText: 'Enter your password',
-        hintStyle: TextStyle(
-          color: primaryBlack.withOpacity(0.4),
-          fontSize: 13,
-        ),
+        hintStyle: TextStyle(color: (isDarkMode ? AppColors.textPrimaryDark : primaryBlack).withOpacity(0.4), fontSize: 13),
         prefixIcon: Container(
           margin: const EdgeInsets.all(8),
           padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: primaryDarkBlue.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: const Icon(
-            Icons.lock_outline_rounded,
-            color: primaryDarkBlue,
-            size: 16,
-          ),
+          decoration: BoxDecoration(color: (isDarkMode ? primaryGold : primaryDarkBlue).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+          child: Icon(Icons.lock_outline_rounded, color: isDarkMode ? primaryGold : primaryDarkBlue, size: 16),
         ),
         suffixIcon: IconButton(
           icon: Icon(
-            _obscurePassword 
-                ? Icons.visibility_off_outlined 
-                : Icons.visibility_outlined,
-            color: primaryDarkBlue.withOpacity(0.6),
+            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            color: (isDarkMode ? primaryGold : primaryDarkBlue).withOpacity(0.6),
             size: 18,
           ),
-          onPressed: () {
-            setState(() => _obscurePassword = !_obscurePassword);
-          },
+          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
         filled: true,
-        fillColor: primaryDarkBlue.withOpacity(0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: primaryGold,
-            width: 1.5,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-            color: Colors.redAccent,
-            width: 1.5,
-          ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 14,
-        ),
+        fillColor: isDarkMode ? AppColors.surfaceDark : primaryDarkBlue.withOpacity(0.05),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: primaryGold, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.redAccent, width: 1.5)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       ),
       validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Please enter your password';
-        }
-        if (value.length < 6) {
-          return 'Password must be at least 6 characters';
-        }
+        if (value == null || value.isEmpty) return 'Please enter your password';
+        if (value.length < 6) return 'Password must be at least 6 characters';
         return null;
       },
     );
   }
 
-  Widget _buildRememberForgotRow() {
+  Widget _buildRememberForgotRow(bool isDarkMode) {
+    final textColor = isDarkMode ? AppColors.textSecondaryDark : primaryBlack.withOpacity(0.7);
+    final actionColor = isDarkMode ? primaryGold : primaryDarkBlue;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Remember Me
         Row(
           children: [
             SizedBox(
@@ -449,55 +364,36 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               width: 20,
               child: Checkbox(
                 value: _rememberMe,
-                onChanged: (value) {
-                  setState(() => _rememberMe = value!);
-                },
+                onChanged: (value) => setState(() => _rememberMe = value!),
                 activeColor: primaryGold,
                 checkColor: primaryDarkBlue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                side: BorderSide(
-                  color: primaryDarkBlue.withOpacity(0.4),
-                  width: 1.5,
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                side: BorderSide(color: actionColor.withOpacity(0.4), width: 1.5),
               ),
             ),
             const SizedBox(width: 6),
-            Text(
-              'Remember me',
-              style: TextStyle(
-                fontSize: 11,
-                color: primaryBlack.withOpacity(0.7),
-              ),
-            ),
+            Text('Remember me', style: TextStyle(fontSize: 11, color: textColor)),
           ],
         ),
-        
-        // Forgot Password
+
+        // FIX: Forgot Password is no longer a dead button
         TextButton(
-          onPressed: () {
-            // Handle forgot password
-          },
+          onPressed: () => _showErrorSnackBar('Contact admin to reset your password.'),
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: const Text(
+          child: Text(
             'Forgot Password?',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: primaryDarkBlue,
-            ),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: actionColor),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildLoginButton() {
+  Widget _buildLoginButton(bool isDarkMode) {
     return SizedBox(
       height: 46,
       child: ElevatedButton(
@@ -508,27 +404,18 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           disabledBackgroundColor: primaryGold.withOpacity(0.6),
           elevation: 0,
           shadowColor: primaryGold.withOpacity(0.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
         child: _isLoading
             ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: primaryDarkBlue,
-                ),
-              )
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2, color: primaryDarkBlue),
+        )
             : const Text(
-                'Sign In',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.6,
-                ),
-              ),
+          'Sign In',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.6),
+        ),
       ),
     );
   }

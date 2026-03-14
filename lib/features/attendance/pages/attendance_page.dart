@@ -4,6 +4,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../core/services/cache_service.dart';
+import '../../../core/app_constants.dart';
 
 /// Attendance page with summary and push notification alerts.
 class AttendancePage extends StatefulWidget {
@@ -40,15 +42,49 @@ class _AttendancePageState extends State<AttendancePage> {
         return;
       }
 
+      // 1. Try to load from cache first
+      final cachedData = CacheService.getAttendance(auid);
+      if (cachedData != null && mounted) {
+        final List<Map<String, dynamic>> loadedSubjects = [];
+        cachedData.forEach((key, value) {
+          final subject = Map<String, dynamic>.from(value as Map);
+          final attended = (subject['attended'] as num).toInt();
+          final total = (subject['total'] as num).toInt();
+          final percent = total > 0 ? (attended / total * 100) : 0.0;
+
+          loadedSubjects.add({
+            'code': key,
+            'name': subject['name'] ?? key,
+            'attended': attended,
+            'total': total,
+            'percent': percent,
+          });
+        });
+        setState(() {
+          _subjects = loadedSubjects;
+          _isLoading = false;
+        });
+      }
+
+      // 2. Fetch fresh data from Firebase behind the scenes
       final database = FirebaseDatabase.instanceFor(
         app: Firebase.app(),
-        databaseURL: 'https://studentsupporttest-default-rtdb.asia-southeast1.firebasedatabase.app',
+        databaseURL: AppConstants.firebaseDbUrl,
       ).ref();
 
       final snapshot = await database.child('attendance').child(auid).child('subjects').get();
 
       if (snapshot.exists && mounted) {
-        final subjectsData = Map<String, dynamic>.from(snapshot.value as Map);
+        // FIX: Safe type check — Firebase may return String instead of Map
+        final rawValue = snapshot.value;
+        if (rawValue is! Map) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = 'Invalid data format. Contact admin.';
+          });
+          return;
+        }
+        final subjectsData = Map<String, dynamic>.from(rawValue);
         final List<Map<String, dynamic>> loadedSubjects = [];
 
         subjectsData.forEach((key, value) {
@@ -70,17 +106,25 @@ class _AttendancePageState extends State<AttendancePage> {
           _subjects = loadedSubjects;
           _isLoading = false;
         });
+        
+        // Cache the fresh data for next time
+        await CacheService.cacheAttendance(auid, subjectsData);
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'No attendance data found';
+          // Don't overwrite existing cached data error message if empty
+          if (_subjects.isEmpty) {
+            _errorMessage = 'No attendance data found';
+          }
         });
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to load attendance data';
-      });
+      if (mounted && _subjects.isEmpty) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to load attendance data';
+        });
+      }
     }
   }
 
@@ -92,10 +136,12 @@ class _AttendancePageState extends State<AttendancePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     // Show loading state
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: AppColors.surfaceLight,
+        backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
         appBar: const CustomAppBar(title: 'Attendance'),
         body: const Center(
           child: CircularProgressIndicator(color: AppColors.attendanceColor),
@@ -106,7 +152,7 @@ class _AttendancePageState extends State<AttendancePage> {
     // Show error state
     if (_errorMessage != null) {
       return Scaffold(
-        backgroundColor: AppColors.surfaceLight,
+        backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
         appBar: const CustomAppBar(title: 'Attendance'),
         body: Center(
           child: Column(
@@ -114,7 +160,7 @@ class _AttendancePageState extends State<AttendancePage> {
             children: [
               const Icon(Icons.error_outline, size: 64, color: AppColors.error),
               const SizedBox(height: 16),
-              Text(_errorMessage!, style: const TextStyle(fontSize: 16, color: AppColors.textSecondary)),
+              Text(_errorMessage!, style: TextStyle(fontSize: 16, color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
@@ -140,7 +186,7 @@ class _AttendancePageState extends State<AttendancePage> {
     final lowSubjects = _subjects.where((s) => (s['percent'] as double) < alertThreshold).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.surfaceLight,
+      backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       appBar: const CustomAppBar(title: 'Attendance'),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -150,11 +196,11 @@ class _AttendancePageState extends State<AttendancePage> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: [
-                overall < alertThreshold 
+                overall < alertThreshold
                     ? AppColors.error.withOpacity(0.9)
                     : AppColors.attendanceColor.withOpacity(0.9),
-                overall < alertThreshold 
-                    ? AppColors.error 
+                overall < alertThreshold
+                    ? AppColors.error
                     : AppColors.attendanceColor,
               ]),
               borderRadius: BorderRadius.circular(20),
@@ -193,11 +239,11 @@ class _AttendancePageState extends State<AttendancePage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: lowSubjects.isNotEmpty 
+              color: lowSubjects.isNotEmpty
                   ? AppColors.error.withOpacity(0.1)
-                  : AppColors.cardBackground,
+                  : (isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight),
               borderRadius: BorderRadius.circular(14),
-              border: lowSubjects.isNotEmpty 
+              border: lowSubjects.isNotEmpty
                   ? Border.all(color: AppColors.error.withOpacity(0.3))
                   : null,
             ),
@@ -206,13 +252,13 @@ class _AttendancePageState extends State<AttendancePage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: lowSubjects.isNotEmpty 
+                    color: lowSubjects.isNotEmpty
                         ? AppColors.error.withOpacity(0.1)
                         : AppColors.attendanceColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
-                    lowSubjects.isNotEmpty ? Icons.notification_important : Icons.notifications_active, 
+                    lowSubjects.isNotEmpty ? Icons.notification_important : Icons.notifications_active,
                     color: lowSubjects.isNotEmpty ? AppColors.error : AppColors.attendanceColor,
                   ),
                 ),
@@ -224,9 +270,9 @@ class _AttendancePageState extends State<AttendancePage> {
                       Text(
                         lowSubjects.isNotEmpty ? 'Low Attendance Alert' : 'All Good!',
                         style: TextStyle(
-                          fontWeight: FontWeight.w600, 
+                          fontWeight: FontWeight.w600,
                           fontSize: 14,
-                          color: lowSubjects.isNotEmpty ? AppColors.error : AppColors.textPrimary,
+                          color: lowSubjects.isNotEmpty ? AppColors.error : (isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -234,7 +280,7 @@ class _AttendancePageState extends State<AttendancePage> {
                         lowSubjects.isNotEmpty
                             ? '${lowSubjects.length} subject${lowSubjects.length > 1 ? "s" : ""} below 75%: ${lowSubjects.map((s) => s["name"]).join(", ")}'
                             : 'All subjects are above 75% threshold',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        style: TextStyle(fontSize: 12, color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                       ),
                     ],
                   ),
@@ -248,11 +294,11 @@ class _AttendancePageState extends State<AttendancePage> {
           ..._subjects.map((s) {
             final p = s['percent'] as double;
             final isLow = p < alertThreshold;
-            return Container(
+              return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.cardBackground, 
+                color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
                 borderRadius: BorderRadius.circular(12),
                 border: isLow ? Border.all(color: AppColors.error.withOpacity(0.3)) : null,
               ),
@@ -261,7 +307,7 @@ class _AttendancePageState extends State<AttendancePage> {
                   Expanded(
                     child: Row(children: [
                       Flexible(
-                        child: Text(s['name'], style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                        child: Text(s['name'], style: TextStyle(fontWeight: FontWeight.w600, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight), overflow: TextOverflow.ellipsis),
                       ),
                       if (isLow) ...[
                         const SizedBox(width: 8),
@@ -273,8 +319,8 @@ class _AttendancePageState extends State<AttendancePage> {
                   Text('${p.toStringAsFixed(1)}%', style: TextStyle(color: _getColor(p), fontWeight: FontWeight.w600)),
                 ]),
                 const SizedBox(height: 4),
-                Text('${s['attended']} / ${s['total']} classes', 
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text('${s['attended']} / ${s['total']} classes',
+                    style: TextStyle(fontSize: 12, color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(value: p / 100, backgroundColor: _getColor(p).withOpacity(0.2), valueColor: AlwaysStoppedAnimation(_getColor(p))),
               ]),

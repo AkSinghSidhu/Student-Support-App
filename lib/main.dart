@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/routes/app_routes.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/background_service.dart'; // Import background service
 import 'core/services/notice_service.dart';
+import 'core/services/cache_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  
+  // Initialize offline cache
+  await CacheService.initialize();
   
   // Initialize notification service (channels, permissions)
   await NotificationService().initialize();
@@ -25,7 +31,14 @@ void main() async {
   final loggedInAuid = prefs.getString('logged_in_auid');
   final isLoggedIn = loggedInAuid != null && loggedInAuid.isNotEmpty;
   
-  runApp(StudentSupportApp(isLoggedIn: isLoggedIn));
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
+      child: StudentSupportApp(isLoggedIn: isLoggedIn),
+    ),
+  );
 }
 
 
@@ -36,12 +49,18 @@ class StudentSupportApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Student Support',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      initialRoute: isLoggedIn ? AppRoutes.home : AppRoutes.login,
-      onGenerateRoute: AppRoutes.generateRoute,
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return MaterialApp(
+          title: 'Student Support',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeProvider.themeMode,
+          initialRoute: isLoggedIn ? AppRoutes.home : AppRoutes.login,
+          onGenerateRoute: AppRoutes.generateRoute,
+        );
+      },
     );
   }
 }

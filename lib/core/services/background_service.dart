@@ -1,4 +1,33 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// BACKGROUND ATTENDANCE SERVICE — SCHEDULED DAILY CHECK
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// PURPOSE:
+//   Check attendance once per day around 6:00 PM and send a local notification
+//   if any subject is below 75%. This replaces the old persistent .listen()
+//   approach that kept an open Firebase socket 24/7.
+//
+// HOW IT WORKS:
+//   1. A Timer.periodic fires every 30 minutes.
+//   2. On each tick it checks:
+//      a) Is it 6 PM or later?       → No  → sleep until next tick.
+//      b) Already notified today?     → Yes → sleep until next tick.
+//   3. If both gates pass, it waits a random 0–1800 second delay (prevents
+//      all 5 000 students from hitting Firebase at the exact same second).
+//   4. It does a SINGLE .get() call to Firebase to fetch this student's
+//      attendance data, then immediately releases the connection.
+//   5. It calculates per-subject percentages and fires a local notification
+//      listing any subjects below 75%.
+//   6. It saves today's date so the check won't run again until tomorrow.
+//
+// FIREBASE USAGE:
+//   • Zero persistent connections.  Only one short-lived .get() per day.
+//   • Safe for 5 000+ concurrent users on the Firebase free plan.
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -6,91 +35,88 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as developer;
+import '../app_constants.dart';
 
-// Channel for the persistent foreground service notification (Silent/Low Importance)
+// ── Notification channel IDs ────────────────────────────────────────────────
+// Service channel (silent, low importance) — for the persistent foreground
+// notification required by Android to keep the service alive.
 const String serviceChannelId = 'attendance_service_channel';
 const String serviceChannelName = 'Background Service';
 const String serviceChannelDesc = 'Keeps the app running to monitor attendance';
 
-// Channel for the actual alerts (High Importance/Sound)
+// Alert channel (high importance, sound) — for the actual attendance alerts.
 const String alertChannelId = 'attendance_alerts';
 const String alertChannelName = 'Attendance Alerts';
 const String alertChannelDesc = 'Notifications for low attendance warnings';
 
+// ── Constants ───────────────────────────────────────────────────────────────
+const double _alertThreshold = 75.0;
+const int _checkHour = 18; // 6:00 PM in 24-hour format
+const int _timerIntervalMinutes = 30;
+const int _maxRandomDelaySeconds = 1800; // 30 minutes spread
+
+// SharedPreferences key for the date of the last successful notification check.
+const String _notifSentDateKey = 'notification_sent_date';
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ENTRY POINT — runs in the background isolate
+// ═════════════════════════════════════════════════════════════════════════════
+
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  // Only available for flutter_background_service:4.5.0+1
   DartPluginRegistrant.ensureInitialized();
 
-  // Initialize Firebase
+  // ── Initialize Firebase ─────────────────────────────────────────────────
   await Firebase.initializeApp();
 
-  // Initialize Local Notifications
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  // ── Initialize local notifications ──────────────────────────────────────
+  final notificationsPlugin = FlutterLocalNotificationsPlugin();
 
-  // Create Service Channel (Low Importance)
-  const AndroidNotificationChannel serviceChannel = AndroidNotificationChannel(
+  const serviceChannel = AndroidNotificationChannel(
     serviceChannelId,
     serviceChannelName,
     description: serviceChannelDesc,
-    importance: Importance.low, // Silent, minimized
+    importance: Importance.low,
     showBadge: false,
   );
 
-  // Create Alert Channel (High Importance)
-  const AndroidNotificationChannel alertChannel = AndroidNotificationChannel(
+  const alertChannel = AndroidNotificationChannel(
     alertChannelId,
     alertChannelName,
     description: alertChannelDesc,
-    importance: Importance.high, // Pop-up, sound
+    importance: Importance.high,
     playSound: true,
   );
 
-  await flutterLocalNotificationsPlugin
+  final androidImpl = notificationsPlugin
       .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(serviceChannel);
+          AndroidFlutterLocalNotificationsPlugin>();
 
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(alertChannel);
+  await androidImpl?.createNotificationChannel(serviceChannel);
+  await androidImpl?.createNotificationChannel(alertChannel);
 
-  await flutterLocalNotificationsPlugin.initialize(
+  await notificationsPlugin.initialize(
     settings: const InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       iOS: DarwinInitializationSettings(),
     ),
   );
 
-  // Bring to foreground
-  service.on('stopService').listen((event) {
-    service.stopSelf();
-  });
+  // ── Service lifecycle handlers ──────────────────────────────────────────
+  service.on('stopService').listen((event) => service.stopSelf());
 
-  // Check if we need to show the foreground notification
   if (service is AndroidServiceInstance) {
-    service.on('setAsForeground').listen((event) {
-      service.setAsForegroundService();
-    });
-
-    service.on('setAsBackground').listen((event) {
-      service.setAsBackgroundService();
-    });
+    service.on('setAsForeground').listen((_) => service.setAsForegroundService());
+    service.on('setAsBackground').listen((_) => service.setAsBackgroundService());
   }
 
-  service.on('stopService').listen((event) {
-    service.stopSelf();
-  });
-  
-  // Show initial notification to indicate service is running (on Low importance channel)
+  // ── Show the persistent (silent) foreground notification ────────────────
   if (service is AndroidServiceInstance) {
     if (await service.isForegroundService()) {
-      flutterLocalNotificationsPlugin.show(
+      notificationsPlugin.show(
         id: 888,
         title: 'Attendance Monitor',
-        body: 'Running in background (Tap to open)',
+        body: 'Will check attendance daily at 6 PM',
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             serviceChannelId,
@@ -107,161 +133,233 @@ void onStart(ServiceInstance service) async {
     }
   }
 
-  // Get user ID
+  // ── Validate logged-in user ─────────────────────────────────────────────
   final prefs = await SharedPreferences.getInstance();
   final auid = prefs.getString('logged_in_auid');
 
   if (auid == null || auid.isEmpty) {
-    developer.log('No user logged in, background service stopping.', name: 'BackgroundService');
+    developer.log(
+      'No user logged in — background service stopping.',
+      name: 'BackgroundService',
+    );
     service.stopSelf();
     return;
   }
 
-  developer.log('Starting background attendance listener for $auid', name: 'BackgroundService');
+  developer.log(
+    'Background service started for $auid. '
+    'Timer will tick every $_timerIntervalMinutes minutes.',
+    name: 'BackgroundService',
+  );
 
-  // Start listening to Firebase
-  final database = FirebaseDatabase.instanceFor(
-    app: Firebase.app(),
-    databaseURL: 'https://studentsupporttest-default-rtdb.asia-southeast1.firebasedatabase.app',
-  ).ref();
+  // ── Run one immediate check, then start the periodic timer ──────────────
+  _scheduledCheck(auid, prefs, notificationsPlugin, service);
 
-  // Store the last modified time to prevent duplicate alerts on service restart
-  
-  database
-      .child('attendance')
-      .child(auid)
-      .child('subjects')
-      .onValue
-      .listen((event) async {
-    try {
-      final snapshot = event.snapshot;
-      if (!snapshot.exists) return;
+  Timer.periodic(
+    const Duration(minutes: _timerIntervalMinutes),
+    (_) => _scheduledCheck(auid, prefs, notificationsPlugin, service),
+  );
+}
 
-      final subjectsData = Map<String, dynamic>.from(snapshot.value as Map);
-      int totalAttended = 0;
-      int totalClasses = 0;
-      List<String> currentLowSubjects = [];
-      const double alertThreshold = 75.0;
+// ═════════════════════════════════════════════════════════════════════════════
+// CORE CHECK — called every 30 minutes by the timer
+// ═════════════════════════════════════════════════════════════════════════════
 
-      subjectsData.forEach((key, value) {
-        final subject = Map<String, dynamic>.from(value as Map);
-        final attended = (subject['attended'] as num).toInt();
-        final total = (subject['total'] as num).toInt();
-        final percent = total > 0 ? (attended / total * 100) : 0.0;
+Future<void> _scheduledCheck(
+  String auid,
+  SharedPreferences prefs,
+  FlutterLocalNotificationsPlugin notificationsPlugin,
+  ServiceInstance service,
+) async {
+  try {
+    // ── STEP 2: Time gate — only proceed at or after 6 PM ─────────────────
+    final now = DateTime.now();
+    if (now.hour < _checkHour) {
+      developer.log(
+        'Before $_checkHour:00 (currently ${now.hour}:${now.minute}) — skipping.',
+        name: 'BackgroundService',
+      );
+      return;
+    }
 
-        totalAttended += attended;
-        totalClasses += total;
+    // ── STEP 3: Already-done gate — skip if we already checked today ──────
+    await prefs.reload(); // get latest from disk
+    final lastSentDate = prefs.getString(_notifSentDateKey) ?? '';
+    final today = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-        if (percent < alertThreshold) {
-          currentLowSubjects.add(subject['name'] ?? key);
-        }
-      });
+    if (lastSentDate == today) {
+      developer.log(
+        'Already checked today ($today) — skipping.',
+        name: 'BackgroundService',
+      );
+      return;
+    }
 
-      final overall = totalClasses > 0 ? totalAttended / totalClasses * 100 : 100.0;
+    // ── STEP 4: Random delay (thundering herd prevention) ─────────────────
+    final randomDelay = Random().nextInt(_maxRandomDelaySeconds);
+    developer.log(
+      'Passed time gates. Waiting ${randomDelay}s before fetching…',
+      name: 'BackgroundService',
+    );
+    await Future.delayed(Duration(seconds: randomDelay));
 
-      // Reload prefs to get the absolute latest state
-      await prefs.reload();
-      final lastNotifiedKey = 'last_notified_low_subjects_$auid';
-      final previousLowSubjects = prefs.getStringList(lastNotifiedKey) ?? [];
-      final wasOverallLow = prefs.getBool('was_overall_low_$auid') ?? false;
-      final isOverallLow = overall < alertThreshold;
+    // Double-check after the delay — another tick may have completed while
+    // we were sleeping.
+    await prefs.reload();
+    final recheckDate = prefs.getString(_notifSentDateKey) ?? '';
+    if (recheckDate == today) {
+      developer.log(
+        'Another tick already completed today — skipping.',
+        name: 'BackgroundService',
+      );
+      return;
+    }
 
-      // Logic to determine if we should notify
-      // 1. Overall dropped below 75%
-      // 2. New subject dropped below 75%
-      
-      bool shouldNotify = false;
-      String title = '';
-      String body = '';
+    // ── STEP 5: Single .get() fetch from Firebase ─────────────────────────
+    developer.log('Fetching attendance for $auid…', name: 'BackgroundService');
 
-      if (isOverallLow && !wasOverallLow) {
-        shouldNotify = true;
-        title = '⚠️ Low Overall Attendance';
-        body = 'Your overall attendance is ${overall.toStringAsFixed(1)}%.';
+    final database = FirebaseDatabase.instanceFor(
+      app: Firebase.app(),
+      databaseURL: AppConstants.firebaseDbUrl,
+    ).ref();
+
+    final snapshot = await database
+        .child('attendance')
+        .child(auid)
+        .child('subjects')
+        .get();
+
+    if (!snapshot.exists || snapshot.value is! Map) {
+      developer.log(
+        'No attendance data found — marking today as done.',
+        name: 'BackgroundService',
+      );
+      await prefs.setString(_notifSentDateKey, today);
+      return;
+    }
+
+    // ── STEP 6: Calculate per-subject percentages ─────────────────────────
+    final subjectsData = Map<String, dynamic>.from(snapshot.value as Map);
+    final List<String> lowSubjects = [];
+    int totalAttended = 0;
+    int totalClasses = 0;
+
+    subjectsData.forEach((key, value) {
+      if (value is! Map) return;
+      final subject = Map<String, dynamic>.from(value);
+      final attended = (subject['attended'] as num).toInt();
+      final total = (subject['total'] as num).toInt();
+      final percent = total > 0 ? (attended / total * 100) : 100.0;
+
+      totalAttended += attended;
+      totalClasses += total;
+
+      if (percent < _alertThreshold) {
+        final name = subject['name'] ?? key;
+        lowSubjects.add('$name (${percent.toStringAsFixed(0)}%)');
+      }
+    });
+
+    final overall = totalClasses > 0
+        ? (totalAttended / totalClasses * 100)
+        : 100.0;
+
+    // ── STEP 7: Send notification if needed ───────────────────────────────
+    if (lowSubjects.isNotEmpty) {
+      final notifId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+      String title;
+      String body;
+
+      if (overall < _alertThreshold) {
+        title = '⚠️ Low Attendance Alert';
+        body = 'Overall: ${overall.toStringAsFixed(1)}%\n'
+            '${lowSubjects.join(", ")} below 75%';
+      } else {
+        title = '📚 Subject Attendance Alert';
+        body = 'Low attendance in: ${lowSubjects.join(", ")}';
       }
 
-      final newLowSubjects = currentLowSubjects
-          .where((s) => !previousLowSubjects.contains(s))
-          .toList();
+      await notificationsPlugin.show(
+        id: notifId,
+        title: title,
+        body: body,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            alertChannelId,
+            alertChannelName,
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+            playSound: true,
+          ),
+        ),
+      );
 
-      if (newLowSubjects.isNotEmpty) {
-        shouldNotify = true;
-        // If we already have a title (overall low), append
-        if (title.isNotEmpty) {
-           body += '\nAlso, ${newLowSubjects.join(", ")} dropped below 75%.';
-        } else {
-           title = '📚 Subject Attendance Alert';
-           body = newLowSubjects.length == 1
-              ? '${newLowSubjects.first} dropped below 75%.'
-              : 'Attendance dropped in: ${newLowSubjects.join(", ")}';
-        }
-      }
+      developer.log(
+        'Notification sent: $title — $body',
+        name: 'BackgroundService',
+      );
+    } else {
+      developer.log(
+        'All subjects above 75% (overall ${overall.toStringAsFixed(1)}%) '
+        '— no notification needed.',
+        name: 'BackgroundService',
+      );
+    }
 
-      // Update the persistent "Service" notification (ID 888) to show live stats
-      // This makes the persistent notification useful instead of just annoying
-      if (service is AndroidServiceInstance) {
-        if (await service.isForegroundService()) {
-          flutterLocalNotificationsPlugin.show(
-            id: 888,
-            title: 'Attendance Monitor Active',
-            body: 'Overall: ${overall.toStringAsFixed(1)}% | Low Subjects: ${currentLowSubjects.length}',
-            notificationDetails: const NotificationDetails(
-              android: AndroidNotificationDetails(
-                serviceChannelId,
-                serviceChannelName,
-                icon: '@mipmap/ic_launcher',
-                ongoing: true,
-                importance: Importance.low,
-                priority: Priority.low,
-                showWhen: false,
-              ),
-            ),
-          );
-        }
-      }
-
-      // Send Actual Alert on High Importance Channel
-      if (shouldNotify) {
-         int notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-         
-         await flutterLocalNotificationsPlugin.show(
-          id: notificationId,
-          title: title,
-          body: body,
+    // ── Update persistent service notification with today's stats ────────
+    if (service is AndroidServiceInstance) {
+      if (await service.isForegroundService()) {
+        notificationsPlugin.show(
+          id: 888,
+          title: 'Attendance Monitor',
+          body: 'Last check: ${now.hour}:${now.minute.toString().padLeft(2, '0')} '
+              '| Overall: ${overall.toStringAsFixed(1)}% '
+              '| Low: ${lowSubjects.length}',
           notificationDetails: const NotificationDetails(
             android: AndroidNotificationDetails(
-              alertChannelId,
-              alertChannelName,
-              importance: Importance.high, // MUST be high to pop up
-              priority: Priority.high,
+              serviceChannelId,
+              serviceChannelName,
               icon: '@mipmap/ic_launcher',
-              playSound: true,
+              ongoing: true,
+              importance: Importance.low,
+              priority: Priority.low,
+              showWhen: false,
             ),
           ),
         );
       }
-
-      // Update state
-      if (shouldNotify || currentLowSubjects.length != previousLowSubjects.length) {
-         await prefs.setStringList(lastNotifiedKey, currentLowSubjects);
-         await prefs.setBool('was_overall_low_$auid', isOverallLow);
-      }
-      
-    } catch (e) {
-      developer.log('Error in background listener: $e', name: 'BackgroundService');
     }
-  });
+
+    // ── STEP 8: Mark today as done ────────────────────────────────────────
+    await prefs.setString(_notifSentDateKey, today);
+
+    developer.log(
+      'Attendance check complete for $today. Sleeping until tomorrow.',
+      name: 'BackgroundService',
+    );
+  } catch (e) {
+    // ── STEP 9: Error handling — log and sleep, never crash ──────────────
+    developer.log(
+      'Error during scheduled attendance check: $e',
+      name: 'BackgroundService',
+    );
+  }
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SERVICE INITIALIZER — called once from main.dart
+// ═════════════════════════════════════════════════════════════════════════════
 
 Future<void> initializeBackgroundService() async {
   final service = FlutterBackgroundService();
 
-  // Create the notification channel in the main isolate to ensure it exists
-  // before the background service tries to use it for foreground promotion.
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  // Pre-create the notification channel in the main isolate so it exists
+  // before the background isolate tries to promote to foreground.
+  final notificationsPlugin = FlutterLocalNotificationsPlugin();
 
-  const AndroidNotificationChannel serviceChannel = AndroidNotificationChannel(
+  const serviceChannel = AndroidNotificationChannel(
     serviceChannelId,
     serviceChannelName,
     description: serviceChannelDesc,
@@ -269,31 +367,29 @@ Future<void> initializeBackgroundService() async {
     showBadge: false,
   );
 
-  await flutterLocalNotificationsPlugin
+  await notificationsPlugin
       .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(serviceChannel);
-  
-  // Configure the service
+
   await service.configure(
     androidConfiguration: AndroidConfiguration(
       onStart: onStart,
       autoStart: true,
       isForegroundMode: true,
-      notificationChannelId: serviceChannelId, // Use the SILENT channel for the service itself
+      notificationChannelId: serviceChannelId,
       initialNotificationTitle: 'Attendance Monitor',
-      initialNotificationContent: 'Running in background',
+      initialNotificationContent: 'Will check attendance daily at 6 PM',
       foregroundServiceNotificationId: 888,
     ),
     iosConfiguration: IosConfiguration(
       autoStart: true,
       onForeground: onStart,
       onBackground: (ServiceInstance service) async {
-        // iOS background fetch is limited, this is a best-effort
         return true;
       },
     ),
   );
-  
+
   service.startService();
 }

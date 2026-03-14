@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'cache_service.dart';
+import '../app_constants.dart';
 
 /// Service to stream notices from Firebase RTDB and send notifications for new ones.
 /// Self-contained: uses its own notification channel so it doesn't touch
@@ -26,8 +28,7 @@ class NoticeService {
 
   DatabaseReference get _noticesRef => FirebaseDatabase.instanceFor(
         app: Firebase.app(),
-        databaseURL:
-            'https://studentsupporttest-default-rtdb.asia-southeast1.firebasedatabase.app',
+        databaseURL: AppConstants.firebaseDbUrl,
       ).ref().child('notices');
 
   /// Initialize the notification channel and plugin for notices.
@@ -177,6 +178,10 @@ class NoticeService {
       // Sort by createdAt descending (newest first)
       notices.sort((a, b) =>
           (b['createdAt'] as String).compareTo(a['createdAt'] as String));
+          
+      // Cache the loaded notices offline
+      CacheService.cacheNotices(notices);
+      
       return notices;
     });
   }

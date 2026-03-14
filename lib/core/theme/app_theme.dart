@@ -45,7 +45,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        color: AppColors.cardBackground,
+        color: AppColors.cardBackgroundLight,
       ),
 
       // Elevated Button Theme
@@ -104,7 +104,7 @@ class AppTheme {
           vertical: 14,
         ),
         hintStyle: TextStyle(
-          color: AppColors.textSecondary.withOpacity(0.6),
+          color: AppColors.textSecondaryLight.withOpacity(0.6),
           fontSize: 14,
         ),
       ),
@@ -120,7 +120,7 @@ class AppTheme {
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.primaryWhite,
         selectedItemColor: AppColors.primaryDarkBlue,
-        unselectedItemColor: AppColors.textMuted,
+        unselectedItemColor: AppColors.textMutedLight,
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
@@ -147,51 +147,123 @@ class AppTheme {
     );
   }
 
-  // Common text styles
-  static const TextStyle headingLarge = TextStyle(
-    fontSize: 28,
-    fontWeight: FontWeight.bold,
-    color: AppColors.textPrimary,
-    letterSpacing: -0.5,
-  );
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      fontFamily: 'Roboto',
+      brightness: Brightness.dark,
+      colorScheme: const ColorScheme(
+        brightness: Brightness.dark,
+        primary: AppColors.primaryGold,
+        onPrimary: AppColors.primaryDarkBlue,
+        secondary: AppColors.primaryDarkBlue,
+        onSecondary: AppColors.primaryWhite,
+        tertiary: AppColors.primaryGold,
+        error: AppColors.error,
+        onError: AppColors.primaryWhite,
+        surface: AppColors.surfaceDark,
+        onSurface: AppColors.primaryWhite,
+      ),
+      scaffoldBackgroundColor: AppColors.surfaceDark,
 
-  static const TextStyle headingMedium = TextStyle(
-    fontSize: 22,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-    letterSpacing: -0.3,
-  );
+      // AppBar Theme
+      appBarTheme: const AppBarTheme(
+        elevation: 0,
+        centerTitle: true,
+        backgroundColor: AppColors.surfaceDark,
+        foregroundColor: AppColors.primaryWhite,
+        titleTextStyle: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: AppColors.primaryWhite,
+          letterSpacing: 0.5,
+        ),
+      ),
 
-  static const TextStyle headingSmall = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-  );
+      // Card Theme
+      cardTheme: CardThemeData(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        color: AppColors.cardBackgroundDark,
+      ),
 
-  static const TextStyle bodyLarge = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.normal,
-    color: AppColors.textPrimary,
-  );
+      // Elevated Button Theme
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryGold,
+          foregroundColor: AppColors.primaryDarkBlue,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
 
-  static const TextStyle bodyMedium = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.normal,
-    color: AppColors.textSecondary,
-  );
+      // Text Button Theme
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primaryGold,
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
 
-  static const TextStyle labelSmall = TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textMuted,
-    letterSpacing: 0.5,
-  );
+      // Input Decoration Theme
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.cardBackgroundDark,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: AppColors.primaryGold,
+            width: 1.5,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: AppColors.error,
+            width: 1.5,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        hintStyle: TextStyle(
+          color: AppColors.textSecondaryDark.withOpacity(0.6),
+          fontSize: 14,
+        ),
+      ),
+
+      // Divider Theme
+      dividerTheme: DividerThemeData(
+        color: AppColors.primaryWhite.withOpacity(0.1),
+        thickness: 1,
+        space: 1,
+      ),
+    );
+  }
 
   // Common decorations
-  static BoxDecoration get cardDecoration => BoxDecoration(
-    color: AppColors.cardBackground,
+  static BoxDecoration cardDecoration(bool isDarkMode) => BoxDecoration(
+    color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
     borderRadius: BorderRadius.circular(16),
-    boxShadow: [
+    boxShadow: isDarkMode ? [] : [
       BoxShadow(
         color: AppColors.primaryBlack.withOpacity(0.08),
         blurRadius: 20,
@@ -200,7 +272,8 @@ class AppTheme {
     ],
   );
 
-  static BoxDecoration get gradientBackground => const BoxDecoration(
-    gradient: AppColors.primaryGradient,
+  static BoxDecoration gradientBackground(bool isDarkMode) => BoxDecoration(
+    gradient: isDarkMode ? null : AppColors.primaryGradient,
+    color: isDarkMode ? AppColors.surfaceDark : null,
   );
 }

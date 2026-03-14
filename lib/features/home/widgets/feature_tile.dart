@@ -66,6 +66,8 @@ class _FeatureTileState extends State<FeatureTile>
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
@@ -82,13 +84,13 @@ class _FeatureTileState extends State<FeatureTile>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           decoration: BoxDecoration(
-            color: AppColors.cardBackground,
+            color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
                 color: _isPressed
                     ? widget.color.withOpacity(0.2)
-                    : AppColors.primaryBlack.withOpacity(0.08),
+                    : (isDarkMode ? Colors.transparent : AppColors.primaryBlack.withOpacity(0.08)),
                 blurRadius: _isPressed ? 16 : 20,
                 offset: Offset(0, _isPressed ? 4 : 8),
                 spreadRadius: _isPressed ? 0 : 0,
@@ -144,10 +146,10 @@ class _FeatureTileState extends State<FeatureTile>
                         children: [
                           Text(
                             widget.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                              color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                               letterSpacing: 0.2,
                             ),
                             maxLines: 1,
@@ -158,7 +160,7 @@ class _FeatureTileState extends State<FeatureTile>
                             widget.subtitle,
                             style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.textSecondary.withOpacity(0.8),
+                              color: isDarkMode ? AppColors.textSecondaryDark.withOpacity(0.8) : AppColors.textSecondaryLight.withOpacity(0.8),
                               fontWeight: FontWeight.w400,
                             ),
                             maxLines: 1,

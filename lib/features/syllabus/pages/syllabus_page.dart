@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../shared/widgets/loading_overlay.dart';
 
 /// Syllabus viewer page with semester and subject selection.
 class SyllabusPage extends StatefulWidget {
@@ -60,7 +63,7 @@ class _SyllabusPageState extends State<SyllabusPage>
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -141,25 +144,9 @@ class _SyllabusPageState extends State<SyllabusPage>
     final subjects = _syllabusData[_selectedSemester] ?? [];
     
     if (subjects.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.menu_book_outlined,
-              size: 64,
-              color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No syllabus available',
-              style: TextStyle(
-                fontSize: 16,
-                color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
-              ),
-            ),
-          ],
-        ),
+      return const EmptyState(
+        icon: Icons.menu_book_outlined,
+        title: 'No syllabus available',
       );
     }
 

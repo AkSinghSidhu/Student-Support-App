@@ -1,10 +1,14 @@
 class AppConstants {
-  /// The main application name
+  /// The main appliclass AppConstants {
   static const String appName = 'Student Support App';
-
-  /// Minimum allowed password length
-  static const int minPasswordLength = 6;
-
-  /// The Firebase Realtime Database URL
+  
+  // Storage Keys
+  static const String themeModeKey = 'theme_mode';
+  static const String auidKey = 'logged_in_auid';
+  
+  // API Endpoints
   static const String firebaseDbUrl = 'https://studentsupporttest-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+  // Constants
+  static const double attendanceThreshold = 75.0;
 }

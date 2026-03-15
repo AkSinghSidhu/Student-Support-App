@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../shared/widgets/loading_overlay.dart';
 
 /// Resources page with tabs for Books, Notes, and PYQs.
 class ResourcesPage extends StatefulWidget {
@@ -59,7 +62,7 @@ class _ResourcesPageState extends State<ResourcesPage>
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -127,25 +130,9 @@ class _ResourcesPageState extends State<ResourcesPage>
 
   Widget _buildResourceList(List<Map<String, dynamic>> items, String type, bool isDarkMode) {
     if (items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.folder_open_outlined,
-              size: 64,
-              color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No resources available',
-              style: TextStyle(
-                fontSize: 16,
-                color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
-              ),
-            ),
-          ],
-        ),
+      return const EmptyState(
+        icon: Icons.folder_open_outlined,
+        title: 'No resources available',
       );
     }
 

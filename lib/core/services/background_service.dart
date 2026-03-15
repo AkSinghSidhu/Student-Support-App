@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:workmanager/workmanager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -72,7 +73,7 @@ void callbackDispatcher() {
 
     } catch (e) {
       // Log error internally, but return true so it can retry later
-      print("WorkManager check failed: $e");
+      developer.log("WorkManager check failed: $e", name: 'BackgroundService');
     }
     
     return Future.value(true);

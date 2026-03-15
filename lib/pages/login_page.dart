@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../core/theme/theme_provider.dart';
 import '../core/theme/app_colors.dart';
 import '../core/database_service.dart';
-import '../core/app_constants.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'cache_service.dart';
 import '../database_service.dart';
-import '../app_constants.dart';
 
 /// Service to stream notices from Firebase RTDB and send notifications for new ones.
 /// Self-contained: uses its own notification channel so it doesn't touch

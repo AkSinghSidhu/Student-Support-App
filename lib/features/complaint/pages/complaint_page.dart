@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
-import '../../../core/services/cache_service.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import '../../../core/queue_service.dart';
-import '../../../core/database_service.dart';
-import '../../../core/app_constants.dart';
+import '../../../core/helpers/form_submission_helper.dart';
 
 /// Complaint submission page with form for reporting issues.
 class ComplaintPage extends StatefulWidget {
@@ -89,20 +83,17 @@ class _ComplaintPageState extends State<ComplaintPage>
           'createdAt': DateTime.now().toIso8601String(),
         };
 
-        // Check connectivity
-        final connectivityResult = await Connectivity().checkConnectivity();
-        final isOnline = !connectivityResult.contains(ConnectivityResult.none);
+        final submitted = await FormSubmissionHelper.submitForm(
+          type: 'complaints',
+          auid: auid,
+          data: complaintData,
+        );
 
-        if (isOnline) {
-          final database = DatabaseService.db;
-          final complaintRef = database.child('complaints').child(auid).push();
-          
-          await complaintRef.set(complaintData).timeout(const Duration(seconds: 5));
-          
+        if (submitted) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('Complaint registered successfully!'),
+                content: const Text('Complaint submitted successfully!'),
                 backgroundColor: AppColors.success,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -111,8 +102,6 @@ class _ComplaintPageState extends State<ComplaintPage>
             Navigator.pop(context);
           }
         } else {
-          // Offline - Add to Queue
-          await QueueService.addToQueue('complaint', auid, complaintData);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

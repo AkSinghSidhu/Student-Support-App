@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
@@ -18,7 +16,7 @@ class AttendancePage extends StatefulWidget {
 
 class _AttendancePageState extends State<AttendancePage> {
   // Hard-coded 75% threshold for alerts
-  static const double alertThreshold = 75.0;
+  static const double alertThreshold = AppConstants.attendanceThreshold;
   bool _isLoading = true;
   String? _errorMessage;
 

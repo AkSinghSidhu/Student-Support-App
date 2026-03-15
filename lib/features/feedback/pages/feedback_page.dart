@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
-import '../../../core/services/cache_service.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import '../../../core/queue_service.dart';
-import '../../../core/database_service.dart';
-import '../../../core/app_constants.dart';
+import '../../../core/helpers/form_submission_helper.dart';
 
 /// Feedback submission page with form for user feedback.
 class FeedbackPage extends StatefulWidget {
@@ -119,16 +113,13 @@ class _FeedbackPageState extends State<FeedbackPage>
           'createdAt': DateTime.now().toIso8601String(),
         };
 
-        // Check connectivity
-        final connectivityResult = await Connectivity().checkConnectivity();
-        final isOnline = !connectivityResult.contains(ConnectivityResult.none);
-
-        if (isOnline) {
-          final database = DatabaseService.db;
-          final feedbackRef = database.child('feedback').child(auid).push();
-          
-          await feedbackRef.set(feedbackData).timeout(const Duration(seconds: 5));
-          
+        final submitted = await FormSubmissionHelper.submitForm(
+          type: 'feedback',
+          auid: auid,
+          data: feedbackData,
+        );
+        
+        if (submitted) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -141,8 +132,6 @@ class _FeedbackPageState extends State<FeedbackPage>
             Navigator.pop(context);
           }
         } else {
-          // Offline - Add to Queue
-          await QueueService.addToQueue('feedback', auid, feedbackData);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

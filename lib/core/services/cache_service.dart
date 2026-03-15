@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 /// Service to handle offline caching of Firebase data using Hive.
 class CacheService {
@@ -34,10 +35,14 @@ class CacheService {
   
   /// Get cached attendance data for a specific user
   static Map<String, dynamic>? getAttendance(String auid) {
-    final box = Hive.box(_attendanceBox);
-    final dataString = box.get(auid);
-    if (dataString != null) {
-      return jsonDecode(dataString) as Map<String, dynamic>;
+    try {
+      final box = Hive.box(_attendanceBox);
+      final dataString = box.get(auid);
+      if (dataString != null) {
+        return jsonDecode(dataString) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      developer.log('CacheService Error getting attendance: $e', name: 'CacheService');
     }
     return null;
   }
@@ -53,11 +58,15 @@ class CacheService {
   
   /// Get cached notices
   static List<Map<String, dynamic>>? getNotices() {
-    final box = Hive.box(_noticesBox);
-    final dataString = box.get('all_notices');
-    if (dataString != null) {
-      final List<dynamic> decoded = jsonDecode(dataString);
-      return decoded.map((e) => e as Map<String, dynamic>).toList();
+    try {
+      final box = Hive.box(_noticesBox);
+      final dataString = box.get('all_notices');
+      if (dataString != null) {
+        final List<dynamic> decoded = jsonDecode(dataString);
+        return decoded.map((e) => e as Map<String, dynamic>).toList();
+      }
+    } catch (e) {
+      developer.log('CacheService Error getting notices: $e', name: 'CacheService');
     }
     return null;
   }
@@ -74,11 +83,15 @@ class CacheService {
   
   /// Get all pending feedback submissions
   static List<Map<String, dynamic>> getPendingFeedback() {
-    final box = Hive.box(_feedbackBox);
-    final dataString = box.get('pending_feedback');
-    if (dataString != null) {
-      final List<dynamic> decoded = jsonDecode(dataString);
-      return decoded.map((e) => e as Map<String, dynamic>).toList();
+    try {
+      final box = Hive.box(_feedbackBox);
+      final dataString = box.get('pending_feedback');
+      if (dataString != null) {
+        final List<dynamic> decoded = jsonDecode(dataString);
+        return decoded.map((e) => e as Map<String, dynamic>).toList();
+      }
+    } catch (e) {
+      developer.log('CacheService Error getting pending feedback: $e', name: 'CacheService');
     }
     return [];
   }
@@ -101,11 +114,15 @@ class CacheService {
   
   /// Get all pending complaint submissions
   static List<Map<String, dynamic>> getPendingComplaints() {
-    final box = Hive.box(_complaintsBox);
-    final dataString = box.get('pending_complaints');
-    if (dataString != null) {
-      final List<dynamic> decoded = jsonDecode(dataString);
-      return decoded.map((e) => e as Map<String, dynamic>).toList();
+    try {
+      final box = Hive.box(_complaintsBox);
+      final dataString = box.get('pending_complaints');
+      if (dataString != null) {
+        final List<dynamic> decoded = jsonDecode(dataString);
+        return decoded.map((e) => e as Map<String, dynamic>).toList();
+      }
+    } catch (e) {
+      developer.log('CacheService Error getting pending complaints: $e', name: 'CacheService');
     }
     return [];
   }

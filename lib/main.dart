@@ -12,12 +12,17 @@ import 'core/services/cache_service.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'core/queue_service.dart';
+import 'core/services/notification_store.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   
   // Initialize offline cache
   await CacheService.initialize();
+
+  // Open notifications Hive box
+  await Hive.openBox('notifications');
   
   // Initialize notification service (channels, permissions)
   await NotificationService().initialize();
@@ -83,6 +88,13 @@ class _StudentSupportAppState extends State<StudentSupportApp> {
           );
           
           await QueueService.retryAll();
+
+          // Store in-app notification for draft sync
+          await NotificationStore.addNotification(
+            title: 'Drafts Sent',
+            body: 'Your saved drafts were submitted successfully',
+            type: 'draft',
+          );
           
           _scaffoldMessengerKey.currentState?.showSnackBar(
             const SnackBar(

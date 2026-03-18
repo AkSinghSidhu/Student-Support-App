@@ -8,6 +8,8 @@ import '../../../shared/utils/responsive_layout.dart';
 import '../widgets/feature_tile.dart';
 import '../../../core/database_service.dart';
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../core/services/notification_store.dart';
+import '../../notifications/notifications_page.dart';
 
 /// Home page with animated feature grid after login.
 class HomePage extends StatefulWidget {
@@ -27,6 +29,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   String _studentName = 'Student';
   String _studentClass = '';
   String _studentAuid = '';
+  int _unreadCount = 0;
 
   final List<_FeatureData> _features = [
     _FeatureData(
@@ -79,6 +82,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     // Load student data from Firebase
     _loadStudentData();
+
+    // Load unread notification count
+    _refreshUnreadCount();
 
     // Header animation
     _headerController = AnimationController(
@@ -144,6 +150,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       }
     } catch (e) {
       // Handle error silently, keep default values
+    }
+  }
+
+  Future<void> _refreshUnreadCount() async {
+    final count = await NotificationStore.getUnreadCount();
+    if (mounted) {
+      setState(() {
+        _unreadCount = count;
+      });
     }
   }
 
@@ -285,16 +300,54 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryWhite.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.notifications_outlined,
-                          color: isDarkMode ? AppColors.textPrimaryDark : AppColors.primaryWhite,
-                          size: 22,
+                      GestureDetector(
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NotificationsPage(),
+                            ),
+                          );
+                          _refreshUnreadCount();
+                        },
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryWhite.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.notifications_outlined,
+                                color: isDarkMode ? AppColors.textPrimaryDark : AppColors.primaryWhite,
+                                size: 22,
+                              ),
+                            ),
+                            if (_unreadCount > 0)
+                              Positioned(
+                                top: -4,
+                                right: -4,
+                                child: Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.error,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    _unreadCount > 9 ? '9+' : '$_unreadCount',
+                                    style: const TextStyle(
+                                      color: AppColors.primaryWhite,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],

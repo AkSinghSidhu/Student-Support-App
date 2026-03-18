@@ -5,6 +5,7 @@ import 'package:workmanager/workmanager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:student_support_app/core/services/notification_service.dart';
 import 'package:student_support_app/core/app_constants.dart';
+import 'package:student_support_app/core/services/notification_store.dart';
 
 const String attendanceTask = "checkAttendanceTask";
 
@@ -69,6 +70,13 @@ void callbackDispatcher() {
         }
 
         await NotificationService().showNotification(title: title, body: body);
+
+        // Store in-app notification
+        await NotificationStore.addNotification(
+          title: title,
+          body: body,
+          type: 'attendance',
+        );
       }
 
     } catch (e) {

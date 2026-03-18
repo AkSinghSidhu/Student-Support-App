@@ -63,7 +63,7 @@ class AppColors {
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        baseColor.withOpacity(0.8),
+        baseColor.withValues(alpha: 0.8),
         baseColor,
       ],
     );

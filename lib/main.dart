@@ -57,6 +57,7 @@ class _StudentSupportAppState extends State<StudentSupportApp> {
   final Connectivity _connectivity = Connectivity();
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _isSyncing = false;
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   @override
   void initState() {
@@ -73,27 +74,23 @@ class _StudentSupportAppState extends State<StudentSupportApp> {
         if (pendingItems.isNotEmpty && !_isSyncing) {
           _isSyncing = true;
           
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Sending your saved drafts...'),
-                backgroundColor: Colors.blue,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }
+          _scaffoldMessengerKey.currentState?.showSnackBar(
+            const SnackBar(
+              content: Text('Sending your saved drafts...'),
+              backgroundColor: Colors.blue,
+              duration: Duration(seconds: 2),
+            ),
+          );
           
           await QueueService.retryAll();
           
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('All drafts sent successfully!'),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
+          _scaffoldMessengerKey.currentState?.showSnackBar(
+            const SnackBar(
+              content: Text('All drafts sent successfully!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
           
           _isSyncing = false;
         }
@@ -112,6 +109,7 @@ class _StudentSupportAppState extends State<StudentSupportApp> {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, _) {
         return MaterialApp(
+          scaffoldMessengerKey: _scaffoldMessengerKey,
           title: 'Student Support',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,

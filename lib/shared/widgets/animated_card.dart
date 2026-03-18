@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/theme/theme_provider.dart';
 
 /// Animated card with scale and fade effects for interactive elements.
 class AnimatedCard extends StatefulWidget {
@@ -71,7 +73,7 @@ class _AnimatedCardState extends State<AnimatedCard>
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
     return GestureDetector(
       onTapDown: widget.onTap != null ? _onTapDown : null,

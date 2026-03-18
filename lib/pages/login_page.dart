@@ -76,10 +76,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     final rememberMe = prefs.getBool('remember_me') ?? false;
     if (rememberMe) {
       final savedAuid = prefs.getString('logged_in_auid') ?? '';
-      setState(() {
-        _rememberMe = true;
-        _auidController.text = savedAuid;
-      });
+      if (mounted) {
+        setState(() {
+          _rememberMe = true;
+          _auidController.text = savedAuid;
+        });
+      }
     }
   }
 
@@ -103,6 +105,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           final rawValue = snapshot.value;
 
           if (rawValue is! Map) {
+            if (!mounted) return;
             setState(() => _isLoading = false);
             _showErrorSnackBar('Invalid data format in database. Contact admin.');
             return;
@@ -121,20 +124,24 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             // Attendance alerts are now handled by the background service
             // (scheduled daily check at 6 PM), no per-login listener needed.
 
+            if (!mounted) return;
             setState(() => _isLoading = false);
 
             if (mounted) {
               Navigator.pushReplacementNamed(context, '/home');
             }
           } else {
+            if (!mounted) return;
             setState(() => _isLoading = false);
             _showErrorSnackBar('Incorrect password. Please try again.');
           }
         } else {
+          if (!mounted) return;
           setState(() => _isLoading = false);
           _showErrorSnackBar('No user found with this AUID.');
         }
       } catch (e) {
+        if (!mounted) return;
         setState(() => _isLoading = false);
 
         // FIX: Show actual helpful error instead of generic message
@@ -194,9 +201,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildHeader(),
+                      _buildHeader(isDarkMode),
                       const SizedBox(height: 32),
-                      _buildLoginCard(),
+                      _buildLoginCard(isDarkMode),
                     ],
                   ),
                 ),
@@ -208,8 +215,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildHeader() {
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+  Widget _buildHeader(bool isDarkMode) {
     return Column(
       children: [
         Container(
@@ -239,8 +245,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildLoginCard() {
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+  Widget _buildLoginCard(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(

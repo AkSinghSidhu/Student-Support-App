@@ -7,6 +7,7 @@ import '../../../core/routes/app_routes.dart';
 import '../../../shared/utils/responsive_layout.dart';
 import '../widgets/feature_tile.dart';
 import '../../../core/database_service.dart';
+import '../../../shared/widgets/app_drawer.dart';
 
 /// Home page with animated feature grid after login.
 class HomePage extends StatefulWidget {
@@ -160,6 +161,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
+      drawer: AppDrawer(
+        studentName: _studentName,
+        studentAuid: _studentAuid,
+        studentDepartment: _studentClass,
+      ),
+      drawerEnableOpenDragGesture: true,
       body: Column(
         children: [
           // Header section
@@ -195,13 +202,30 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top row with avatar and notification
+                  // Top row with hamburger, avatar and notification
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: Row(
                           children: [
+                            // Hamburger menu icon
+                            Builder(
+                              builder: (BuildContext drawerContext) {
+                                return IconButton(
+                                  icon: const Icon(
+                                    Icons.menu_rounded,
+                                    color: AppColors.primaryWhite,
+                                    size: 24,
+                                  ),
+                                  onPressed: () => Scaffold.of(drawerContext).openDrawer(),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            // Person icon container
                             Container(
                               width: 56,
                               height: 56,
@@ -210,7 +234,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primaryGold.withOpacity(0.3),
+                                    color: AppColors.primaryGold.withValues(alpha: 0.3),
                                     blurRadius: 12,
                                     spreadRadius: 1,
                                   ),
@@ -242,7 +266,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       _studentClass,
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: isDarkMode ? AppColors.textSecondaryDark : AppColors.primaryWhite.withOpacity(0.8),
+                                        color: isDarkMode ? AppColors.textSecondaryDark : AppColors.primaryWhite.withValues(alpha: 0.8),
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -251,7 +275,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       _studentAuid,
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: isDarkMode ? AppColors.textMutedDark : AppColors.primaryWhite.withOpacity(0.6),
+                                        color: isDarkMode ? AppColors.textMutedDark : AppColors.primaryWhite.withValues(alpha: 0.6),
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -264,7 +288,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryWhite.withOpacity(0.15),
+                          color: AppColors.primaryWhite.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(

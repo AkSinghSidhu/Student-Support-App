@@ -1,5 +1,5 @@
+/// Application-wide constants.
 class AppConstants {
-  /// The main appliclass AppConstants {
   static const String appName = 'Student Support App';
   
   // Storage Keys

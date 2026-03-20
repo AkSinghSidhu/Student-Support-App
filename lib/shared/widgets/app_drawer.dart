@@ -1,10 +1,11 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/theme_provider.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/routes/app_routes.dart';
-
 import '../../core/services/cache_service.dart';
 import '../../core/services/background_service.dart';
 
@@ -25,49 +26,128 @@ class AppDrawer extends StatefulWidget {
 }
 
 class _AppDrawerState extends State<AppDrawer> {
+  String _currentLanguage = 'English';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguage();
+  }
+
+  Future<void> _loadLanguage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('language') ?? 'English';
+      if (mounted) {
+        setState(() => _currentLanguage = saved);
+      }
+    } catch (e) {
+      developer.log('Language load failed: $e', name: 'AppDrawer');
+    }
+  }
+
   Future<void> _handleLogout(BuildContext dialogContext) async {
-    // 1. Navigator.pop(dialogContext) — close the dialog
     Navigator.pop(dialogContext);
-    
-    // 2. NotificationService().stopAttendanceListener()
-    // Not applicable since NotificationService doesn't have stopAttendanceListener
-    
-    // 3. try/catch: await CacheService.clearAllUserCache()
+
     try {
       await CacheService.clearAllUserCache();
-    } catch (e) {
-      // ignore
-    }
-    
-    // 4. cancelAttendanceCheck()
+    } catch (_) {}
+
     cancelAttendanceCheck();
-    
-    // 5. try/catch: final prefs = await SharedPreferences.getInstance()
+
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('logged_in_auid');
       await prefs.remove('remember_me');
       await prefs.remove('theme_mode');
-    } catch (e) {
-      // ignore
-    }
-    
-    // 6. if (mounted): AppRoutes.navigateClearStack(context, AppRoutes.login)
+    } catch (_) {}
+
     if (mounted) {
       AppRoutes.navigateClearStack(context, AppRoutes.login);
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  // HELPERS
+  // ═══════════════════════════════════════════════════════════════════
+
+  Widget _buildSectionLabel(String text, bool isDarkMode) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.w600,
+          color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required bool isDarkMode,
+    required VoidCallback onTap,
+    double opacity = 1.0,
+  }) {
+    return Opacity(
+      opacity: opacity,
+      child: ListTile(
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 12,
+            color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+          ),
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildDivider(bool isDarkMode) {
+    return Divider(
+      color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.2),
+      height: 8,
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BUILD
+  // ═══════════════════════════════════════════════════════════════════
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
-    
+
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.82,
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       child: Column(
         children: [
-          // SECTION 1 — HEADER
+          // ─── HEADER ───
           Container(
             padding: const EdgeInsets.fromLTRB(20, 48, 20, 24),
             width: double.infinity,
@@ -140,146 +220,267 @@ class _AppDrawerState extends State<AppDrawer> {
               ],
             ),
           ),
-          
-          // SECTIONS 2 & 3 — Wrapped in Expanded + scroll
+
+          // ─── SCROLLABLE BODY ───
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // SECTION 2 — APPEARANCE
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'APPEARANCE',
-                          style: TextStyle(
-                            fontSize: 11,
-                            letterSpacing: 1.2,
-                            fontWeight: FontWeight.w600,
-                            color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
-                            border: Border.all(
-                              color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.2),
-                              width: 1,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.all(4),
-                          child: Consumer<ThemeProvider>(
-                            builder: (context, themeProvider, _) {
-                              return Row(
-                                children: [
-                                  _buildThemeButton(
-                                    themeProvider: themeProvider,
-                                    mode: ThemeMode.light,
-                                    label: '☀️  Light',
-                                    isDarkMode: isDarkMode,
-                                  ),
-                                  _buildThemeButton(
-                                    themeProvider: themeProvider,
-                                    mode: ThemeMode.dark,
-                                    label: '🌙  Dark',
-                                    isDarkMode: isDarkMode,
-                                  ),
-                                  _buildThemeButton(
-                                    themeProvider: themeProvider,
-                                    mode: ThemeMode.system,
-                                    label: '📱  System',
-                                    isDarkMode: isDarkMode,
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // SECTION 3 — MENU ITEMS
-                  Divider(
-                    color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.2),
-                    height: 32,
-                  ),
-                  
-                  ListTile(
-                    leading: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.person_outline,
-                        color: Color(0xFF8B5CF6),
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(
-                      'Profile',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'View your details',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      ),
-                    ),
+                  // ─── ACCOUNT ───
+                  _buildSectionLabel('ACCOUNT', isDarkMode),
+                  _buildTile(
+                    icon: Icons.person_outline,
+                    iconColor: const Color(0xFF8B5CF6),
+                    title: 'Profile',
+                    subtitle: 'View your details',
+                    isDarkMode: isDarkMode,
                     onTap: () {
-                      Navigator.pop(context); // Close drawer
+                      Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Profile page coming soon')),
                       );
                     },
                   ),
-                  
-                  ListTile(
-                    leading: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.privacy_tip_outlined,
-                        color: Color(0xFF3B82F6),
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(
-                      'Privacy Policy',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Terms and conditions',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      ),
-                    ),
+                  _buildTile(
+                    icon: Icons.lock_outline,
+                    iconColor: const Color(0xFF3B82F6),
+                    title: 'Change Password',
+                    subtitle: 'Coming soon',
+                    isDarkMode: isDarkMode,
+                    opacity: 0.4,
                     onTap: () {
-                      Navigator.pop(context); // Close drawer
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Coming soon')),
+                        const SnackBar(content: Text('Available after account upgrade')),
+                      );
+                    },
+                  ),
+
+                  _buildDivider(isDarkMode),
+
+                  // ─── DISPLAY ───
+                  _buildSectionLabel('DISPLAY', isDarkMode),
+
+                  // Theme toggle — kept exactly as original
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
+                        border: Border.all(
+                          color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: Consumer<ThemeProvider>(
+                        builder: (context, themeProvider, _) {
+                          return Row(
+                            children: [
+                              _buildThemeButton(
+                                themeProvider: themeProvider,
+                                mode: ThemeMode.light,
+                                label: '☀️  Light',
+                                isDarkMode: isDarkMode,
+                              ),
+                              _buildThemeButton(
+                                themeProvider: themeProvider,
+                                mode: ThemeMode.dark,
+                                label: '🌙  Dark',
+                                isDarkMode: isDarkMode,
+                              ),
+                              _buildThemeButton(
+                                themeProvider: themeProvider,
+                                mode: ThemeMode.system,
+                                label: '📱  System',
+                                isDarkMode: isDarkMode,
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+
+                  _buildDivider(isDarkMode),
+
+                  // ─── GENERAL ───
+                  _buildSectionLabel('GENERAL', isDarkMode),
+
+                  // Language
+                  _buildTile(
+                    icon: Icons.language_outlined,
+                    iconColor: const Color(0xFF16A34A),
+                    title: 'Language',
+                    subtitle: _currentLanguage,
+                    isDarkMode: isDarkMode,
+                    onTap: () {
+                      final rootContext = context;
+                      Navigator.pop(context);
+                      showModalBottomSheet(
+                        context: rootContext,
+                        backgroundColor: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                        isScrollControlled: false,
+                        builder: (sheetContext) {
+                          return SizedBox(
+                            height: 260,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Language',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  for (final lang in ['English', 'Hindi', 'Punjabi'])
+                                    ListTile(
+                                      title: Text(
+                                        lang,
+                                        style: TextStyle(
+                                          color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                        ),
+                                      ),
+                                      leading: Radio<String>(
+                                        value: lang,
+                                        groupValue: _currentLanguage,
+                                        activeColor: AppColors.primaryGold,
+                                        onChanged: (val) async {
+                                          final messenger = ScaffoldMessenger.of(rootContext);
+                                          try {
+                                            final prefs = await SharedPreferences.getInstance();
+                                            await prefs.setString('language', lang);
+                                            if (mounted) {
+                                              setState(() => _currentLanguage = lang);
+                                            }
+                                          } catch (e) {
+                                            developer.log('Language save failed: $e', name: 'AppDrawer');
+                                          }
+                                          if (sheetContext.mounted) {
+                                            Navigator.pop(sheetContext);
+                                          }
+                                          messenger.showSnackBar(
+                                            const SnackBar(content: Text('Language will apply on next launch')),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+
+                  // About
+                  _buildTile(
+                    icon: Icons.info_outline,
+                    iconColor: const Color(0xFF6B7280),
+                    title: 'About',
+                    subtitle: 'Version 0.1.0',
+                    isDarkMode: isDarkMode,
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (dialogContext) {
+                          return AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            backgroundColor: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
+                            contentPadding: const EdgeInsets.all(24),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 64,
+                                  height: 64,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.primaryDarkBlue,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.school_rounded, color: AppColors.primaryWhite, size: 36),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Student Support App',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Version 0.1.0',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                const Divider(),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Built for university students to track attendance, notices, syllabus and more.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Developed by Supan & AkSinghSidhu',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dialogContext),
+                                child: const Text(
+                                  'Close',
+                                  style: TextStyle(
+                                    color: AppColors.primaryGold,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+
+                  // Privacy Policy
+                  _buildTile(
+                    icon: Icons.privacy_tip_outlined,
+                    iconColor: const Color(0xFF3B82F6),
+                    title: 'Privacy Policy',
+                    subtitle: 'Terms and conditions',
+                    isDarkMode: isDarkMode,
+                    onTap: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Privacy Policy coming soon')),
                       );
                     },
                   ),
@@ -287,14 +488,13 @@ class _AppDrawerState extends State<AppDrawer> {
               ),
             ),
           ),
-          
-          // SECTION 4 — LOGOUT
+
+          // ─── LOGOUT ───
           Divider(
             color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.2),
             height: 1,
             thickness: 1,
           ),
-          
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             leading: const Icon(Icons.logout_rounded, color: Colors.red),
@@ -343,13 +543,13 @@ class _AppDrawerState extends State<AppDrawer> {
               );
             },
           ),
-          
-          // SECTION 5 — VERSION
+
+          // ─── VERSION ───
           Padding(
             padding: const EdgeInsets.only(bottom: 16, top: 8),
             child: Center(
               child: Text(
-                'Version 1.0.0',
+                'Version 0.1.0',
                 style: TextStyle(
                   fontSize: 11,
                   color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
@@ -369,7 +569,7 @@ class _AppDrawerState extends State<AppDrawer> {
     required bool isDarkMode,
   }) {
     final isSelected = themeProvider.themeMode == mode;
-    
+
     return Expanded(
       child: GestureDetector(
         onTap: () => themeProvider.setThemeMode(mode),
@@ -386,8 +586,8 @@ class _AppDrawerState extends State<AppDrawer> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected 
-                  ? AppColors.primaryDarkBlue 
+              color: isSelected
+                  ? AppColors.primaryDarkBlue
                   : (isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
             ),
           ),

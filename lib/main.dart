@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
+
 import 'core/routes/app_routes.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/background_service.dart'; // Import background service

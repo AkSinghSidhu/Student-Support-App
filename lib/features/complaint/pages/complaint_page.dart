@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../core/helpers/form_submission_helper.dart';
 
 /// Complaint submission page with form for reporting issues.
 class ComplaintPage extends StatefulWidget {
@@ -63,30 +65,80 @@ class _ComplaintPageState extends State<ComplaintPage>
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
       
-      await Future.delayed(const Duration(seconds: 1));
-      
-      setState(() => _isSubmitting = false);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Complaint registered successfully!'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final auid = prefs.getString('logged_in_auid');
+
+        if (auid == null) {
+          throw Exception('User not logged in');
+        }
+
+        final complaintData = {
+          'userId': auid,
+          'subject': _subjectController.text.trim(),
+          'description': _descriptionController.text.trim(),
+          'type': _selectedType,
+          'urgency': _urgency,
+          'status': 'pending',
+          'createdAt': DateTime.now().toIso8601String(),
+        };
+
+        final submitted = await FormSubmissionHelper.submitForm(
+          type: 'complaints',
+          auid: auid,
+          data: complaintData,
         );
-        Navigator.pop(context);
+
+        if (submitted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Complaint submitted successfully!'),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            );
+            Navigator.pop(context);
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('No internet — saved as draft, will send automatically when you reconnect'),
+                backgroundColor: AppColors.warning,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                duration: const Duration(seconds: 4),
+              ),
+            );
+            Navigator.pop(context);
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isSubmitting = false);
+        }
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppColors.surfaceLight,
+      backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       appBar: const CustomAppBar(title: 'Register Complaint'),
       body: FadeTransition(
         opacity: _fadeAnim,
@@ -99,31 +151,31 @@ class _ComplaintPageState extends State<ComplaintPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header card
-                _buildHeaderCard(),
+                _buildHeaderCard(isDarkMode),
                 const SizedBox(height: 24),
                 
                 // Complaint type
-                _buildSectionLabel('Complaint Type'),
+                _buildSectionLabel('Complaint Type', isDarkMode),
                 const SizedBox(height: 10),
-                _buildTypeSelector(),
+                _buildTypeSelector(isDarkMode),
                 const SizedBox(height: 24),
                 
                 // Urgency level
-                _buildSectionLabel('Urgency Level'),
+                _buildSectionLabel('Urgency Level', isDarkMode),
                 const SizedBox(height: 10),
-                _buildUrgencySelector(),
+                _buildUrgencySelector(isDarkMode),
                 const SizedBox(height: 24),
                 
                 // Subject
-                _buildSectionLabel('Subject'),
+                _buildSectionLabel('Subject', isDarkMode),
                 const SizedBox(height: 10),
-                _buildSubjectInput(),
+                _buildSubjectInput(isDarkMode),
                 const SizedBox(height: 20),
                 
                 // Description
-                _buildSectionLabel('Description'),
+                _buildSectionLabel('Description', isDarkMode),
                 const SizedBox(height: 10),
-                _buildDescriptionInput(),
+                _buildDescriptionInput(isDarkMode),
                 const SizedBox(height: 32),
                 
                 // Submit button
@@ -136,7 +188,7 @@ class _ComplaintPageState extends State<ComplaintPage>
     );
   }
 
-  Widget _buildHeaderCard() {
+  Widget _buildHeaderCard(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -166,7 +218,7 @@ class _ComplaintPageState extends State<ComplaintPage>
             ),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -175,15 +227,15 @@ class _ComplaintPageState extends State<ComplaintPage>
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'We\'ll address your concerns promptly',
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textSecondary,
+                    color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                   ),
                 ),
               ],
@@ -194,18 +246,18 @@ class _ComplaintPageState extends State<ComplaintPage>
     );
   }
 
-  Widget _buildSectionLabel(String label) {
+  Widget _buildSectionLabel(String label, bool isDarkMode) {
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
+        color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
       ),
     );
   }
 
-  Widget _buildTypeSelector() {
+  Widget _buildTypeSelector(bool isDarkMode) {
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -219,12 +271,12 @@ class _ComplaintPageState extends State<ComplaintPage>
             decoration: BoxDecoration(
               color: isSelected
                   ? AppColors.primaryDarkBlue
-                  : AppColors.cardBackground,
+                  : (isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected
                     ? AppColors.primaryDarkBlue
-                    : AppColors.textMuted.withOpacity(0.3),
+                    : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
               ),
             ),
             child: Text(
@@ -234,7 +286,7 @@ class _ComplaintPageState extends State<ComplaintPage>
                 fontWeight: FontWeight.w500,
                 color: isSelected
                     ? AppColors.primaryWhite
-                    : AppColors.textSecondary,
+                    : (isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
               ),
             ),
           ),
@@ -243,7 +295,7 @@ class _ComplaintPageState extends State<ComplaintPage>
     );
   }
 
-  Widget _buildUrgencySelector() {
+  Widget _buildUrgencySelector(bool isDarkMode) {
     return Row(
       children: _urgencyLevels.map((level) {
         final isSelected = _urgency == level['label'];
@@ -259,12 +311,12 @@ class _ComplaintPageState extends State<ComplaintPage>
               decoration: BoxDecoration(
                 color: isSelected
                     ? (level['color'] as Color).withOpacity(0.15)
-                    : AppColors.cardBackground,
+                    : (isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isSelected
                       ? level['color'] as Color
-                      : AppColors.textMuted.withOpacity(0.3),
+                      : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
                   width: isSelected ? 1.5 : 1,
                 ),
               ),
@@ -276,7 +328,7 @@ class _ComplaintPageState extends State<ComplaintPage>
                     fontWeight: FontWeight.w600,
                     color: isSelected
                         ? level['color'] as Color
-                        : AppColors.textSecondary,
+                        : (isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                   ),
                 ),
               ),
@@ -287,24 +339,25 @@ class _ComplaintPageState extends State<ComplaintPage>
     );
   }
 
-  Widget _buildSubjectInput() {
+  Widget _buildSubjectInput(bool isDarkMode) {
     return TextFormField(
       controller: _subjectController,
-      style: const TextStyle(fontSize: 14),
+      style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
       decoration: InputDecoration(
         hintText: 'Brief subject of complaint',
+        hintStyle: TextStyle(color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
         filled: true,
-        fillColor: AppColors.cardBackground,
+        fillColor: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: AppColors.textMuted.withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: AppColors.textMuted.withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
           ),
         ),
       ),
@@ -317,25 +370,26 @@ class _ComplaintPageState extends State<ComplaintPage>
     );
   }
 
-  Widget _buildDescriptionInput() {
+  Widget _buildDescriptionInput(bool isDarkMode) {
     return TextFormField(
       controller: _descriptionController,
       maxLines: 5,
-      style: const TextStyle(fontSize: 14),
+      style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
       decoration: InputDecoration(
         hintText: 'Describe the issue in detail...',
+        hintStyle: TextStyle(color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
         filled: true,
-        fillColor: AppColors.cardBackground,
+        fillColor: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: AppColors.textMuted.withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: AppColors.textMuted.withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
           ),
         ),
       ),

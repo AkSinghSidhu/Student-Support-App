@@ -1,0 +1,71 @@
+name: build-and-test
+
+# 1. Trigger automatically on every push to main branch AND on every pull request to main
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Suppress Node.js 20 deprecation warning
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    name: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Java 17 (required for modern Android/Gradle builds)
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # Step 3: Set up Flutter stable channel
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      # Step 4: Cache pub dependencies so the workflow runs faster on repeat runs
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            */.dart_tool
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      # Step 5: Install dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Step 6: Analyze the code (fails if any errors or warnings exist, including deprecations)
+      - name: Analyze code
+        run: flutter analyze --fatal-warnings
+
+      # Step 7: Run all tests (fails if any test fails)
+      - name: Run tests
+        run: flutter test
+
+# DELETE or comment out these two steps entirely:
+
+# - name: Build APK
+#   run: flutter build apk --release
+
+# - name: Upload debug APK
+#   uses: actions/upload-artifact@v4
+#   with:
+#     name: debug-apk
+#     path: build/app/outputs/flutter-apk/app-debug.apk
+#     retention-days: 30

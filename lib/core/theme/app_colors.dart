@@ -19,13 +19,16 @@ class AppColors {
   // Surface Colors
   static const Color surfaceLight = Color(0xFFF8F9FA);
   static const Color surfaceDark = Color(0xFF1A1A2E);
-  static const Color cardBackground = primaryWhite;
+  static const Color cardBackgroundLight = primaryWhite;
+  static const Color cardBackgroundDark = Color(0xFF262640);
 
   // Text Colors
-  static const Color textPrimary = primaryBlack;
-  static const Color textSecondary = Color(0xFF6C757D);
-  static const Color textLight = primaryWhite;
-  static const Color textMuted = Color(0xFF9CA3AF);
+  static const Color textPrimaryLight = primaryBlack;
+  static const Color textSecondaryLight = Color(0xFF6C757D);
+  static const Color textPrimaryDark = primaryWhite;
+  static const Color textSecondaryDark = Color(0xFF9CA3AF);
+  static const Color textMutedLight = Color(0xFF9CA3AF);
+  static const Color textMutedDark = Color(0xFF6B7280);
 
   // Status Colors
   static const Color success = Color(0xFF10B981);
@@ -60,7 +63,7 @@ class AppColors {
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        baseColor.withOpacity(0.8),
+        baseColor.withValues(alpha: 0.8),
         baseColor,
       ],
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/services/notice_service.dart';
+import '../../../core/services/cache_service.dart';
 
 /// Notices page with announcements list and filters.
 class NoticesPage extends StatefulWidget {
@@ -22,8 +23,10 @@ class _NoticesPageState extends State<NoticesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppColors.surfaceLight,
+      backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       appBar: const CustomAppBar(title: 'Notices'),
       body: Column(
         children: [
@@ -42,14 +45,14 @@ class _NoticesPageState extends State<NoticesPage> {
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: isActive ? AppColors.noticesColor : AppColors.cardBackground,
+                      color: isActive ? AppColors.noticesColor : (isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: isActive ? AppColors.noticesColor : AppColors.textMuted.withOpacity(0.3)),
+                      border: Border.all(color: isActive ? AppColors.noticesColor : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3)),
                     ),
                     alignment: Alignment.center,
                     child: Text(_filters[i], style: TextStyle(
                       fontSize: 13, fontWeight: FontWeight.w500,
-                      color: isActive ? Colors.white : AppColors.textSecondary,
+                      color: isActive ? Colors.white : (isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                     )),
                   ),
                 );
@@ -59,13 +62,14 @@ class _NoticesPageState extends State<NoticesPage> {
           // Notices list from Firebase
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
+              initialData: CacheService.getNotices(),
               stream: NoticeService().noticesStream(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (snapshot.hasError) {
+                if (snapshot.hasError && !snapshot.hasData) {
                   return Center(child: Text('Error loading notices: ${snapshot.error}'));
                 }
 
@@ -79,7 +83,7 @@ class _NoticesPageState extends State<NoticesPage> {
                 return ListView.builder(
                   padding: const EdgeInsets.all(20),
                   itemCount: filtered.length,
-                  itemBuilder: (c, i) => _buildNoticeCard(filtered[i]),
+                  itemBuilder: (c, i) => _buildNoticeCard(filtered[i], isDarkMode),
                 );
               },
             ),
@@ -99,12 +103,12 @@ class _NoticesPageState extends State<NoticesPage> {
     }
   }
 
-  Widget _buildNoticeCard(Map<String, dynamic> notice) {
+  Widget _buildNoticeCard(Map<String, dynamic> notice, bool isDarkMode) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         borderRadius: BorderRadius.circular(14),
         border: notice['important'] ? Border.all(color: AppColors.error.withOpacity(0.5)) : null,
       ),
@@ -124,10 +128,10 @@ class _NoticesPageState extends State<NoticesPage> {
             ),
           ],
           const Spacer(),
-          Text(_formatDate(notice['date']), style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+          Text(_formatDate(notice['date']), style: TextStyle(fontSize: 11, color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
         ]),
         const SizedBox(height: 10),
-        Text(notice['title'], style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        Text(notice['title'], style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)),
       ]),
     );
   }

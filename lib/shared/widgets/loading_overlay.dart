@@ -18,6 +18,7 @@ class LoadingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       children: [
         child,
@@ -26,7 +27,7 @@ class LoadingOverlay extends StatelessWidget {
             opacity: isLoading ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 200),
             child: Container(
-              color: backgroundColor ?? Colors.black.withOpacity(0.4),
+              color: backgroundColor ?? (isDarkMode ? Colors.black.withOpacity(0.6) : Colors.black.withOpacity(0.4)),
               child: Center(
                 child: _LoadingIndicator(message: message),
               ),
@@ -72,12 +73,14 @@ class _LoadingIndicatorState extends State<_LoadingIndicator>
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       decoration: BoxDecoration(
-        color: AppColors.primaryWhite,
+        color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.primaryWhite,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        boxShadow: isDarkMode ? [] : [
           BoxShadow(
             color: AppColors.primaryBlack.withOpacity(0.15),
             blurRadius: 24,
@@ -111,9 +114,9 @@ class _LoadingIndicatorState extends State<_LoadingIndicator>
             const SizedBox(height: 16),
             Text(
               widget.message!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
@@ -142,6 +145,9 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDarkMode ? AppColors.primaryGold : AppColors.primaryDarkBlue;
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -151,22 +157,22 @@ class EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppColors.primaryDarkBlue.withOpacity(0.08),
+                color: primaryColor.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Icon(
                 icon,
                 size: 48,
-                color: AppColors.primaryDarkBlue.withOpacity(0.4),
+                color: primaryColor.withOpacity(0.4),
               ),
             ),
             const SizedBox(height: 20),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
               ),
               textAlign: TextAlign.center,
             ),
@@ -174,9 +180,9 @@ class EmptyState extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 subtitle!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.textSecondary,
+                  color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                 ),
                 textAlign: TextAlign.center,
               ),

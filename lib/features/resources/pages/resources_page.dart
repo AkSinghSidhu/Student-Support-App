@@ -100,7 +100,7 @@ class _ResourcesPageState extends State<ResourcesPage>
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryBlack.withOpacity(0.05),
+            color: AppColors.primaryBlack.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -180,7 +180,7 @@ class _ResourcesPageState extends State<ResourcesPage>
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryBlack.withOpacity(0.05),
+            color: AppColors.primaryBlack.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -209,7 +209,7 @@ class _ResourcesPageState extends State<ResourcesPage>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
+                    color: color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: color, size: 24),
@@ -243,7 +243,7 @@ class _ResourcesPageState extends State<ResourcesPage>
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGold.withOpacity(0.12),
+                    color: AppColors.primaryGold.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(

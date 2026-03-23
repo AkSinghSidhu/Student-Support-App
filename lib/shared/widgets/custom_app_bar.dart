@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_colors.dart';
 
 /// Custom app bar with gradient background and consistent styling.
@@ -23,7 +25,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
     return Container(
       decoration: useGradient
@@ -97,7 +99,7 @@ class GradientHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
     return Container(
       width: double.infinity,
@@ -118,7 +120,7 @@ class GradientHeader extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryWhite.withOpacity(0.15),
+                  color: AppColors.primaryWhite.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
@@ -144,7 +146,7 @@ class GradientHeader extends StatelessWidget {
                 subtitle!,
                 style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.primaryWhite.withOpacity(0.7),
+                  color: AppColors.primaryWhite.withValues(alpha: 0.7),
                 ),
               ),
             ],

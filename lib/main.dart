@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'core/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 
@@ -23,7 +24,7 @@ void main() async {
   await CacheService.initialize();
 
   // Open notifications Hive box
-  await Hive.openBox('notifications');
+  await Hive.openBox(AppConstants.notificationsBoxKey);
   
   // Initialize notification service (channels, permissions)
   await NotificationService().initialize();
@@ -36,7 +37,7 @@ void main() async {
   
   // Check if user is already logged in
   final prefs = await SharedPreferences.getInstance();
-  final loggedInAuid = prefs.getString('logged_in_auid');
+  final loggedInAuid = prefs.getString(AppConstants.auidKey);
   final isLoggedIn = loggedInAuid != null && loggedInAuid.isNotEmpty;
   
   runApp(

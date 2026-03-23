@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:hive_flutter/hive_flutter.dart';
+import '../app_constants.dart';
 
 /// Hive-based local storage service for in-app notifications.
 class NotificationStore {
-  static const String _boxName = 'notifications';
-
-  static Box get _box => Hive.box(_boxName);
+  static Box get _box => Hive.box(AppConstants.notificationsBoxKey);
 
   /// Add a new notification to the store.
   static Future<void> addNotification({
@@ -23,8 +22,12 @@ class NotificationStore {
         'isRead': false,
         'timestamp': DateTime.now().toIso8601String(),
       };
-      final list = _getList();
+      var list = _getList();
       list.insert(0, notification); // newest first
+      // Keep only the 50 most recent notifications
+      if (list.length > 50) {
+        list = list.sublist(0, 50);
+      }
       await _box.put('items', jsonEncode(list));
     } catch (e) {
       developer.log('Error adding notification: $e', name: 'NotificationStore');

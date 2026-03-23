@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/helpers/form_submission_helper.dart';
+import '../../../core/app_constants.dart';
 
 /// Complaint submission page with form for reporting issues.
 class ComplaintPage extends StatefulWidget {
@@ -61,22 +65,34 @@ class _ComplaintPageState extends State<ComplaintPage>
     super.dispose();
   }
 
+  String _sanitizeInput(String input) {
+    return input
+      .replaceAll('.', '')
+      .replaceAll('#', '')
+      .replaceAll('\$', '')
+      .replaceAll('[', '')
+      .replaceAll(']', '');
+  }
+
   Future<void> _submitComplaint() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
       
       try {
         final prefs = await SharedPreferences.getInstance();
-        final auid = prefs.getString('logged_in_auid');
+        final auid = prefs.getString(AppConstants.auidKey);
 
         if (auid == null) {
           throw Exception('User not logged in');
         }
 
+        final sanitizedSubject = _sanitizeInput(_subjectController.text.trim());
+        final sanitizedDescription = _sanitizeInput(_descriptionController.text.trim());
+
         final complaintData = {
           'userId': auid,
-          'subject': _subjectController.text.trim(),
-          'description': _descriptionController.text.trim(),
+          'subject': sanitizedSubject,
+          'description': sanitizedDescription,
           'type': _selectedType,
           'urgency': _urgency,
           'status': 'pending',
@@ -135,7 +151,7 @@ class _ComplaintPageState extends State<ComplaintPage>
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -194,13 +210,13 @@ class _ComplaintPageState extends State<ComplaintPage>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.complaintColor.withOpacity(0.15),
-            AppColors.complaintColor.withOpacity(0.05),
+            AppColors.complaintColor.withValues(alpha: 0.15),
+            AppColors.complaintColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.complaintColor.withOpacity(0.2),
+          color: AppColors.complaintColor.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -208,7 +224,7 @@ class _ComplaintPageState extends State<ComplaintPage>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.complaintColor.withOpacity(0.15),
+              color: AppColors.complaintColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -276,7 +292,7 @@ class _ComplaintPageState extends State<ComplaintPage>
               border: Border.all(
                 color: isSelected
                     ? AppColors.primaryDarkBlue
-                    : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
+                    : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3),
               ),
             ),
             child: Text(
@@ -310,13 +326,13 @@ class _ComplaintPageState extends State<ComplaintPage>
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? (level['color'] as Color).withOpacity(0.15)
+                    ? (level['color'] as Color).withValues(alpha: 0.15)
                     : (isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isSelected
                       ? level['color'] as Color
-                      : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
+                      : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3),
                   width: isSelected ? 1.5 : 1,
                 ),
               ),
@@ -342,6 +358,8 @@ class _ComplaintPageState extends State<ComplaintPage>
   Widget _buildSubjectInput(bool isDarkMode) {
     return TextFormField(
       controller: _subjectController,
+      maxLength: 100,
+      maxLengthEnforcement: MaxLengthEnforcement.enforced,
       style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
       decoration: InputDecoration(
         hintText: 'Brief subject of complaint',
@@ -351,13 +369,13 @@ class _ComplaintPageState extends State<ComplaintPage>
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3),
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3),
           ),
         ),
       ),
@@ -374,6 +392,8 @@ class _ComplaintPageState extends State<ComplaintPage>
     return TextFormField(
       controller: _descriptionController,
       maxLines: 5,
+      maxLength: 1000,
+      maxLengthEnforcement: MaxLengthEnforcement.enforced,
       style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
       decoration: InputDecoration(
         hintText: 'Describe the issue in detail...',
@@ -383,13 +403,13 @@ class _ComplaintPageState extends State<ComplaintPage>
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3),
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3),
           ),
         ),
       ),

@@ -7,9 +7,11 @@ import '../../../core/routes/app_routes.dart';
 import '../../../shared/utils/responsive_layout.dart';
 import '../widgets/feature_tile.dart';
 import '../../../core/database_service.dart';
+import '../../../core/app_constants.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../core/services/notification_store.dart';
 import '../../notifications/notifications_page.dart';
+import '../../../models/feature_data.dart';
 
 /// Home page with animated feature grid after login.
 class HomePage extends StatefulWidget {
@@ -31,43 +33,43 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   String _studentAuid = '';
   int _unreadCount = 0;
 
-  final List<_FeatureData> _features = [
-    _FeatureData(
+  final List<FeatureData> _features = [
+    FeatureData(
       title: 'Feedback',
       subtitle: 'Share your thoughts',
       icon: Icons.feedback_outlined,
       color: AppColors.feedbackColor,
       route: AppRoutes.feedback,
     ),
-    _FeatureData(
+    FeatureData(
       title: 'Complaints',
       subtitle: 'Report issues',
       icon: Icons.report_problem_outlined,
       color: AppColors.complaintColor,
       route: AppRoutes.complaint,
     ),
-    _FeatureData(
+    FeatureData(
       title: 'Syllabus',
       subtitle: 'Course structure',
       icon: Icons.menu_book_outlined,
       color: AppColors.syllabusColor,
       route: AppRoutes.syllabus,
     ),
-    _FeatureData(
+    FeatureData(
       title: 'Resources',
       subtitle: 'Books, Notes & PYQs',
       icon: Icons.library_books_outlined,
       color: AppColors.resourcesColor,
       route: AppRoutes.resources,
     ),
-    _FeatureData(
+    FeatureData(
       title: 'Attendance',
       subtitle: 'Track & alerts',
       icon: Icons.calendar_today_outlined,
       color: AppColors.attendanceColor,
       route: AppRoutes.attendance,
     ),
-    _FeatureData(
+    FeatureData(
       title: 'Notices',
       subtitle: 'Announcements',
       icon: Icons.campaign_outlined,
@@ -123,7 +125,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Future<void> _loadStudentData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final auid = prefs.getString('logged_in_auid');
+      final auid = prefs.getString(AppConstants.auidKey);
 
       if (auid != null && auid.isNotEmpty) {
         final database = DatabaseService.db;
@@ -415,21 +417,4 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       },
     );
   }
-}
-
-/// Feature data model
-class _FeatureData {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final String route;
-
-  _FeatureData({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.route,
-  });
 }

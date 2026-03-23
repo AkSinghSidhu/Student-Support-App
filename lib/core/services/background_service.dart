@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:student_support_app/core/services/notification_service.dart';
@@ -17,7 +18,7 @@ void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final auid = prefs.getString('logged_in_auid');
+      final auid = prefs.getString(AppConstants.auidKey);
       
       if (auid == null || auid.isEmpty) {
         return Future.value(true);
@@ -109,7 +110,7 @@ Duration _timeUntilNextSixPM() {
 void initializeBackgroundService() {
   Workmanager().initialize(
     callbackDispatcher,
-    isInDebugMode: false, // Set to true for debugging if needed
+    isInDebugMode: kDebugMode,
   );
 
   scheduleAttendanceCheck();

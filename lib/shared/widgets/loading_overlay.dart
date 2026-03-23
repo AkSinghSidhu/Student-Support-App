@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_colors.dart';
 
 /// Animated loading overlay for async operations.
@@ -18,7 +20,7 @@ class LoadingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     return Stack(
       children: [
         child,
@@ -27,7 +29,7 @@ class LoadingOverlay extends StatelessWidget {
             opacity: isLoading ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 200),
             child: Container(
-              color: backgroundColor ?? (isDarkMode ? Colors.black.withOpacity(0.6) : Colors.black.withOpacity(0.4)),
+              color: backgroundColor ?? (isDarkMode ? Colors.black.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.4)),
               child: Center(
                 child: _LoadingIndicator(message: message),
               ),
@@ -73,7 +75,7 @@ class _LoadingIndicatorState extends State<_LoadingIndicator>
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
@@ -82,7 +84,7 @@ class _LoadingIndicatorState extends State<_LoadingIndicator>
         borderRadius: BorderRadius.circular(16),
         boxShadow: isDarkMode ? [] : [
           BoxShadow(
-            color: AppColors.primaryBlack.withOpacity(0.15),
+            color: AppColors.primaryBlack.withValues(alpha: 0.15),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -97,7 +99,7 @@ class _LoadingIndicatorState extends State<_LoadingIndicator>
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.primaryGold.withOpacity(0.15),
+                color: AppColors.primaryGold.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Center(
@@ -145,7 +147,7 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     final primaryColor = isDarkMode ? AppColors.primaryGold : AppColors.primaryDarkBlue;
     
     return Center(
@@ -157,13 +159,13 @@ class EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.08),
+                color: primaryColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Icon(
                 icon,
                 size: 48,
-                color: primaryColor.withOpacity(0.4),
+                color: primaryColor.withValues(alpha: 0.4),
               ),
             ),
             const SizedBox(height: 20),

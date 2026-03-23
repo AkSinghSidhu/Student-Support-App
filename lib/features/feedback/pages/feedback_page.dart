@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/helpers/form_submission_helper.dart';
+import '../../../core/app_constants.dart';
 
 /// Feedback submission page with form for user feedback.
 class FeedbackPage extends StatefulWidget {
@@ -81,6 +85,15 @@ class _FeedbackPageState extends State<FeedbackPage>
     super.dispose();
   }
 
+  String _sanitizeInput(String input) {
+    return input
+      .replaceAll('.', '')
+      .replaceAll('#', '')
+      .replaceAll('\$', '')
+      .replaceAll('[', '')
+      .replaceAll(']', '');
+  }
+
   Future<void> _submitFeedback() async {
     if (_formKey.currentState!.validate() && _rating > 0) {
       if (_selectedDepartment == null) {
@@ -96,7 +109,7 @@ class _FeedbackPageState extends State<FeedbackPage>
 
       try {
         final prefs = await SharedPreferences.getInstance();
-        final auid = prefs.getString('logged_in_auid');
+        final auid = prefs.getString(AppConstants.auidKey);
 
         if (auid == null) {
           throw Exception('User not logged in');
@@ -108,7 +121,7 @@ class _FeedbackPageState extends State<FeedbackPage>
           'teacher': _selectedTeacher,
           'category': _selectedCategory,
           'rating': _rating,
-          'message': _feedbackController.text.trim(),
+          'message': _sanitizeInput(_feedbackController.text.trim()),
           'status': 'pending',
           'createdAt': DateTime.now().toIso8601String(),
         };
@@ -180,7 +193,7 @@ class _FeedbackPageState extends State<FeedbackPage>
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -249,7 +262,7 @@ class _FeedbackPageState extends State<FeedbackPage>
         color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
+          color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3),
         ),
       ),
       child: DropdownButtonHideUnderline(
@@ -298,7 +311,7 @@ class _FeedbackPageState extends State<FeedbackPage>
         color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
+          color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3),
         ),
       ),
       child: DropdownButtonHideUnderline(
@@ -343,13 +356,13 @@ class _FeedbackPageState extends State<FeedbackPage>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.feedbackColor.withOpacity(0.15),
-            AppColors.feedbackColor.withOpacity(0.05),
+            AppColors.feedbackColor.withValues(alpha: 0.15),
+            AppColors.feedbackColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.feedbackColor.withOpacity(0.2),
+          color: AppColors.feedbackColor.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -357,7 +370,7 @@ class _FeedbackPageState extends State<FeedbackPage>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.feedbackColor.withOpacity(0.15),
+              color: AppColors.feedbackColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -425,7 +438,7 @@ class _FeedbackPageState extends State<FeedbackPage>
               border: Border.all(
                 color: isSelected
                     ? AppColors.primaryDarkBlue
-                    : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
+                    : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3),
               ),
             ),
             child: Text(
@@ -469,6 +482,8 @@ class _FeedbackPageState extends State<FeedbackPage>
     return TextFormField(
       controller: _feedbackController,
       maxLines: 5,
+      maxLength: 1000,
+      maxLengthEnforcement: MaxLengthEnforcement.enforced,
       style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
       decoration: InputDecoration(
         hintText: 'Write your feedback here...',
@@ -478,13 +493,13 @@ class _FeedbackPageState extends State<FeedbackPage>
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3),
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3),
+            color: (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3),
           ),
         ),
       ),

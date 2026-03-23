@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_constants.dart';
 import 'database_service.dart';
 
 class QueueService {
-  static const String _queueKey = 'pending_submissions_queue';
 
   /// Save a new pending item to the queue
   static Future<void> addToQueue(String type, String auid, Map<String, dynamic> data) async {
@@ -20,12 +20,15 @@ class QueueService {
         'auid': auid,
         'data': data,
         'timestamp': DateTime.now().toIso8601String(),
+        'expiresAt': DateTime.now()
+            .add(const Duration(days: 7))
+            .toIso8601String(),
       };
 
       List<Map<String, dynamic>> queue = await getPendingItems();
       queue.add(newItem);
 
-      await prefs.setString(_queueKey, json.encode(queue));
+      await prefs.setString(AppConstants.pendingQueueKey, json.encode(queue));
     } catch (e) {
       developer.log('QueueService Error adding to queue: $e', name: 'QueueService');
     }
@@ -35,7 +38,7 @@ class QueueService {
   static Future<List<Map<String, dynamic>>> getPendingItems() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String? queueString = prefs.getString(_queueKey);
+      final String? queueString = prefs.getString(AppConstants.pendingQueueKey);
       
       if (queueString == null || queueString.isEmpty) {
         return [];
@@ -57,7 +60,7 @@ class QueueService {
       
       queue.removeWhere((item) => item['localId'] == localId);
       
-      await prefs.setString(_queueKey, json.encode(queue));
+      await prefs.setString(AppConstants.pendingQueueKey, json.encode(queue));
     } catch (e) {
       developer.log('QueueService Error removing from queue: $e', name: 'QueueService');
     }
@@ -76,6 +79,23 @@ class QueueService {
       final String auid = item['auid'];
       final String localId = item['localId'];
       final Map<String, dynamic> data = item['data'];
+
+      try {
+        final expiresAt = DateTime.parse(
+          item['expiresAt'] as String? ??
+          DateTime.now().add(const Duration(days: 7)).toIso8601String()
+        );
+        if (DateTime.now().isAfter(expiresAt)) {
+          developer.log(
+            'Removing expired queue item: $localId',
+            name: 'QueueService',
+          );
+          await removeFromQueue(localId);
+          continue;
+        }
+      } catch (e) {
+        developer.log('Error checking expiry for $localId: $e', name: 'QueueService');
+      }
 
       try {
         if (type == 'complaint' || type == 'complaints') {

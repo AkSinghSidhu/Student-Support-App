@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 
 /// Individual feature tile for home grid with animated tap effects.
@@ -66,7 +68,7 @@ class _FeatureTileState extends State<FeatureTile>
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -89,8 +91,8 @@ class _FeatureTileState extends State<FeatureTile>
             boxShadow: [
               BoxShadow(
                 color: _isPressed
-                    ? widget.color.withOpacity(0.2)
-                    : (isDarkMode ? Colors.transparent : AppColors.primaryBlack.withOpacity(0.08)),
+                    ? widget.color.withValues(alpha: 0.2)
+                    : (isDarkMode ? Colors.transparent : AppColors.primaryBlack.withValues(alpha: 0.08)),
                 blurRadius: _isPressed ? 16 : 20,
                 offset: Offset(0, _isPressed ? 4 : 8),
                 spreadRadius: _isPressed ? 0 : 0,
@@ -112,8 +114,8 @@ class _FeatureTileState extends State<FeatureTile>
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          widget.color.withOpacity(0.15),
-                          widget.color.withOpacity(0.0),
+                          widget.color.withValues(alpha: 0.15),
+                          widget.color.withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -130,7 +132,7 @@ class _FeatureTileState extends State<FeatureTile>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: widget.color.withOpacity(0.12),
+                          color: widget.color.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Icon(
@@ -160,7 +162,7 @@ class _FeatureTileState extends State<FeatureTile>
                             widget.subtitle,
                             style: TextStyle(
                               fontSize: 11,
-                              color: isDarkMode ? AppColors.textSecondaryDark.withOpacity(0.8) : AppColors.textSecondaryLight.withOpacity(0.8),
+                              color: isDarkMode ? AppColors.textSecondaryDark.withValues(alpha: 0.8) : AppColors.textSecondaryLight.withValues(alpha: 0.8),
                               fontWeight: FontWeight.w400,
                             ),
                             maxLines: 1,
@@ -177,7 +179,7 @@ class _FeatureTileState extends State<FeatureTile>
                   right: 16,
                   child: Icon(
                     Icons.arrow_forward_rounded,
-                    color: widget.color.withOpacity(0.5),
+                    color: widget.color.withValues(alpha: 0.5),
                     size: 18,
                   ),
                 ),

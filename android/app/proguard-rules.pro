@@ -28,3 +28,15 @@
 -keepattributes *Annotation*
 -keepattributes Signature
 -keepattributes Exceptions
+
+# Google Play Core (required by Flutter internals)
+-keep class com.google.android.play.core.** { *; }
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.splitcompat.** { *; }
+-keep class com.google.android.play.core.splitinstall.** { *; }
+-keep class com.google.android.play.core.tasks.** { *; }
+
+# Flutter embedding
+-keep class io.flutter.embedding.android.** { *; }
+-keep class io.flutter.embedding.engine.** { *; }
+-dontwarn io.flutter.embedding.**

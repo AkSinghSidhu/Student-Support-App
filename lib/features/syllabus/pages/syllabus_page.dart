@@ -4,6 +4,7 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/loading_overlay.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 
 /// Syllabus viewer page with semester and subject selection.
 class SyllabusPage extends StatefulWidget {
@@ -20,6 +21,7 @@ class _SyllabusPageState extends State<SyllabusPage>
   
   int _selectedSemester = 1;
   String? _selectedSubject;
+  bool _isLoading = true;
 
   // Sample data - will be replaced by Firebase
   final Map<int, List<Map<String, dynamic>>> _syllabusData = {
@@ -52,7 +54,15 @@ class _SyllabusPageState extends State<SyllabusPage>
       parent: _animController,
       curve: Curves.easeOut,
     );
-    _animController.forward();
+    _simulateLoading();
+  }
+
+  Future<void> _simulateLoading() async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (mounted) {
+      setState(() => _isLoading = false);
+      _animController.forward();
+    }
   }
 
   Future<void> _refresh() async {
@@ -71,6 +81,41 @@ class _SyllabusPageState extends State<SyllabusPage>
   Widget build(BuildContext context) {
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
+        appBar: const CustomAppBar(title: 'Syllabus'),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: ShimmerBox(
+                width: double.infinity,
+                height: 56,
+                borderRadius: 14,
+                isDarkMode: isDarkMode,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: List.generate(5, (i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ShimmerBox(
+                    width: double.infinity,
+                    height: 64,
+                    borderRadius: 14,
+                    isDarkMode: isDarkMode,
+                  ),
+                )),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       appBar: const CustomAppBar(title: 'Syllabus'),

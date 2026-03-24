@@ -4,6 +4,7 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/loading_overlay.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 
 /// Resources page with tabs for Books, Notes, and PYQs.
 class ResourcesPage extends StatefulWidget {
@@ -18,6 +19,7 @@ class _ResourcesPageState extends State<ResourcesPage>
   late TabController _tabController;
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
+  bool _isLoading = true;
 
   // Sample data - will be replaced by Firebase
   final List<Map<String, dynamic>> _books = [
@@ -50,7 +52,15 @@ class _ResourcesPageState extends State<ResourcesPage>
       parent: _animController,
       curve: Curves.easeOut,
     );
-    _animController.forward();
+    _simulateLoading();
+  }
+
+  Future<void> _simulateLoading() async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (mounted) {
+      setState(() => _isLoading = false);
+      _animController.forward();
+    }
   }
 
   @override
@@ -63,6 +73,40 @@ class _ResourcesPageState extends State<ResourcesPage>
   @override
   Widget build(BuildContext context) {
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
+        appBar: const CustomAppBar(title: 'Resources'),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: ShimmerBox(
+                width: double.infinity,
+                height: 48,
+                borderRadius: 14,
+                isDarkMode: isDarkMode,
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                children: List.generate(4, (i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ShimmerBox(
+                    width: double.infinity,
+                    height: 80,
+                    borderRadius: 14,
+                    isDarkMode: isDarkMode,
+                  ),
+                )),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,

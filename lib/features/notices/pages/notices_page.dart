@@ -6,6 +6,7 @@ import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/services/notice_service.dart';
 import '../../../core/services/cache_service.dart';
 import '../../../shared/widgets/offline_banner.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// Notices page with announcements list and filters.
@@ -116,7 +117,18 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
               stream: _noticesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                  return ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: List.generate(5, (i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ShimmerBox(
+                        width: double.infinity,
+                        height: 90,
+                        borderRadius: 14,
+                        isDarkMode: isDarkMode,
+                      ),
+                    )),
+                  );
                 }
 
                 if (snapshot.hasError && !snapshot.hasData) {

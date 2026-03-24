@@ -8,6 +8,7 @@ import '../../../core/services/cache_service.dart';
 import '../../../core/database_service.dart';
 import '../../../core/app_constants.dart';
 import '../../../shared/widgets/offline_banner.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// Attendance page with summary and push notification alerts.
@@ -165,8 +166,35 @@ class _AttendancePageState extends State<AttendancePage> {
       return Scaffold(
         backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
         appBar: const CustomAppBar(title: 'Attendance'),
-        body: const Center(
-          child: CircularProgressIndicator(color: AppColors.attendanceColor),
+        body: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              ShimmerBox(
+                width: double.infinity,
+                height: 120,
+                borderRadius: 20,
+                isDarkMode: isDarkMode,
+              ),
+              const SizedBox(height: 20),
+              ShimmerBox(
+                width: double.infinity,
+                height: 80,
+                borderRadius: 14,
+                isDarkMode: isDarkMode,
+              ),
+              const SizedBox(height: 20),
+              ...List.generate(4, (i) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: ShimmerBox(
+                  width: double.infinity,
+                  height: 72,
+                  borderRadius: 12,
+                  isDarkMode: isDarkMode,
+                ),
+              )),
+            ],
+          ),
         ),
       );
     }

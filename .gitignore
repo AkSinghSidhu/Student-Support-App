@@ -55,3 +55,6 @@ key.properties
 **/*.keystore
 *.jks
 *.keystore
+
+# Firebase config — contains API keys
+android/app/google-services.json

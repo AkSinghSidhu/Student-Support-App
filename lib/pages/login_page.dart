@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_database/firebase_database.dart';
+import '../core/app_constants.dart';
 import '../core/theme/theme_provider.dart';
 import '../core/theme/app_colors.dart';
 import '../core/database_service.dart';
@@ -73,9 +74,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   // FIX: Load saved AUID and Remember Me state on app open
   Future<void> _loadRememberMe() async {
     final prefs = await SharedPreferences.getInstance();
-    final rememberMe = prefs.getBool('remember_me') ?? false;
+    final rememberMe = prefs.getBool(AppConstants.rememberMeKey) ?? false;
     if (rememberMe) {
-      final savedAuid = prefs.getString('logged_in_auid') ?? '';
+      final savedAuid = prefs.getString(AppConstants.auidKey) ?? '';
       if (mounted) {
         setState(() {
           _rememberMe = true;
@@ -116,10 +117,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
           if (storedPassword != null && storedPassword == enteredPassword) {
             final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('logged_in_auid', enteredAuid);
+            await prefs.setString(AppConstants.auidKey, enteredAuid);
 
             // FIX: Actually save/clear Remember Me based on checkbox state
-            await prefs.setBool('remember_me', _rememberMe);
+            await prefs.setBool(AppConstants.rememberMeKey, _rememberMe);
 
             // Attendance alerts are now handled by the background service
             // (scheduled daily check at 6 PM), no per-login listener needed.
@@ -225,8 +226,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             color: isDarkMode ? AppColors.cardBackgroundDark : primaryWhite,
             borderRadius: BorderRadius.circular(18),
             boxShadow: isDarkMode ? [] : [
-              BoxShadow(color: primaryGold.withOpacity(0.4), blurRadius: 24, spreadRadius: 3),
-              BoxShadow(color: primaryDarkBlue.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 8)),
+              BoxShadow(color: primaryGold.withValues(alpha: 0.4), blurRadius: 24, spreadRadius: 3),
+              BoxShadow(color: primaryDarkBlue.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 8)),
             ],
           ),
           child: Icon(Icons.school_rounded, size: 40, color: isDarkMode ? primaryGold : primaryDarkBlue),
@@ -239,7 +240,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         const SizedBox(height: 6),
         Text(
           'Sign in to continue your journey',
-          style: TextStyle(fontSize: 13, color: primaryWhite.withOpacity(0.7), letterSpacing: 0.4),
+          style: TextStyle(fontSize: 13, color: primaryWhite.withValues(alpha: 0.7), letterSpacing: 0.4),
         ),
       ],
     );
@@ -252,7 +253,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         color: isDarkMode ? AppColors.cardBackgroundDark : primaryWhite,
         borderRadius: BorderRadius.circular(18),
         boxShadow: isDarkMode ? [] : [
-          BoxShadow(color: primaryBlack.withOpacity(0.2), blurRadius: 32, offset: const Offset(0, 16)),
+          BoxShadow(color: primaryBlack.withValues(alpha: 0.2), blurRadius: 32, offset: const Offset(0, 16)),
         ],
       ),
       child: Form(
@@ -295,15 +296,15 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : primaryBlack, letterSpacing: 1.5),
       decoration: InputDecoration(
         hintText: 'Enter your 9-digit AUID',
-        hintStyle: TextStyle(color: (isDarkMode ? AppColors.textPrimaryDark : primaryBlack).withOpacity(0.4), fontSize: 13, letterSpacing: 0.5),
+        hintStyle: TextStyle(color: (isDarkMode ? AppColors.textPrimaryDark : primaryBlack).withValues(alpha: 0.4), fontSize: 13, letterSpacing: 0.5),
         prefixIcon: Container(
           margin: const EdgeInsets.all(8),
           padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(color: (isDarkMode ? primaryGold : primaryDarkBlue).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+          decoration: BoxDecoration(color: (isDarkMode ? primaryGold : primaryDarkBlue).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
           child: Icon(Icons.badge_outlined, color: isDarkMode ? primaryGold : primaryDarkBlue, size: 16),
         ),
         filled: true,
-        fillColor: isDarkMode ? AppColors.surfaceDark : primaryDarkBlue.withOpacity(0.05),
+        fillColor: isDarkMode ? AppColors.surfaceDark : primaryDarkBlue.withValues(alpha: 0.05),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: primaryGold, width: 1.5)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.redAccent, width: 1.5)),
@@ -324,23 +325,23 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : primaryBlack),
       decoration: InputDecoration(
         hintText: 'Enter your password',
-        hintStyle: TextStyle(color: (isDarkMode ? AppColors.textPrimaryDark : primaryBlack).withOpacity(0.4), fontSize: 13),
+        hintStyle: TextStyle(color: (isDarkMode ? AppColors.textPrimaryDark : primaryBlack).withValues(alpha: 0.4), fontSize: 13),
         prefixIcon: Container(
           margin: const EdgeInsets.all(8),
           padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(color: (isDarkMode ? primaryGold : primaryDarkBlue).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+          decoration: BoxDecoration(color: (isDarkMode ? primaryGold : primaryDarkBlue).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
           child: Icon(Icons.lock_outline_rounded, color: isDarkMode ? primaryGold : primaryDarkBlue, size: 16),
         ),
         suffixIcon: IconButton(
           icon: Icon(
             _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-            color: (isDarkMode ? primaryGold : primaryDarkBlue).withOpacity(0.6),
+            color: (isDarkMode ? primaryGold : primaryDarkBlue).withValues(alpha: 0.6),
             size: 18,
           ),
           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
         filled: true,
-        fillColor: isDarkMode ? AppColors.surfaceDark : primaryDarkBlue.withOpacity(0.05),
+        fillColor: isDarkMode ? AppColors.surfaceDark : primaryDarkBlue.withValues(alpha: 0.05),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: primaryGold, width: 1.5)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.redAccent, width: 1.5)),
@@ -355,7 +356,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }
 
   Widget _buildRememberForgotRow(bool isDarkMode) {
-    final textColor = isDarkMode ? AppColors.textSecondaryDark : primaryBlack.withOpacity(0.7);
+    final textColor = isDarkMode ? AppColors.textSecondaryDark : primaryBlack.withValues(alpha: 0.7);
     final actionColor = isDarkMode ? primaryGold : primaryDarkBlue;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -371,7 +372,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 activeColor: primaryGold,
                 checkColor: primaryDarkBlue,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                side: BorderSide(color: actionColor.withOpacity(0.4), width: 1.5),
+                side: BorderSide(color: actionColor.withValues(alpha: 0.4), width: 1.5),
               ),
             ),
             const SizedBox(width: 6),
@@ -404,9 +405,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryGold,
           foregroundColor: primaryDarkBlue,
-          disabledBackgroundColor: primaryGold.withOpacity(0.6),
+          disabledBackgroundColor: primaryGold.withValues(alpha: 0.6),
           elevation: 0,
-          shadowColor: primaryGold.withOpacity(0.5),
+          shadowColor: primaryGold.withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
         child: _isLoading

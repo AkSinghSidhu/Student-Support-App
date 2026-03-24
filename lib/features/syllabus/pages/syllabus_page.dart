@@ -55,6 +55,12 @@ class _SyllabusPageState extends State<SyllabusPage>
     _animController.forward();
   }
 
+  Future<void> _refresh() async {
+    setState(() {
+      _selectedSemester = 1;
+    });
+  }
+
   @override
   void dispose() {
     _animController.dispose();
@@ -92,7 +98,7 @@ class _SyllabusPageState extends State<SyllabusPage>
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryBlack.withOpacity(0.05),
+            color: AppColors.primaryBlack.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -150,8 +156,11 @@ class _SyllabusPageState extends State<SyllabusPage>
       );
     }
 
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      color: AppColors.primaryDarkBlue,
+      child: ListView.builder(
+        physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       itemCount: subjects.length,
       itemBuilder: (context, index) {
@@ -166,12 +175,12 @@ class _SyllabusPageState extends State<SyllabusPage>
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isExpanded
-                  ? AppColors.syllabusColor.withOpacity(0.5)
+                  ? AppColors.syllabusColor.withValues(alpha: 0.5)
                   : Colors.transparent,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryBlack.withOpacity(0.05),
+                color: AppColors.primaryBlack.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -199,7 +208,7 @@ class _SyllabusPageState extends State<SyllabusPage>
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.syllabusColor.withOpacity(0.12),
+                            color: AppColors.syllabusColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -218,7 +227,7 @@ class _SyllabusPageState extends State<SyllabusPage>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryGold.withOpacity(0.15),
+                            color: AppColors.primaryGold.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -261,6 +270,7 @@ class _SyllabusPageState extends State<SyllabusPage>
           ),
         );
       },
+      ),
     );
   }
 }

@@ -77,8 +77,8 @@ class NotificationService {
 
     // Get FCM token for server-side push (for future use)
     try {
-      String? token = await _firebaseMessaging.getToken();
-      developer.log('FCM Token: $token', name: 'NotificationService');
+      await _firebaseMessaging.getToken();
+      developer.log('FCM Token obtained successfully', name: 'NotificationService');
     } catch (e) {
       developer.log('Warning: Failed to get FCM token: $e', name: 'NotificationService');
       // Non-fatal error. The app should continue to load.

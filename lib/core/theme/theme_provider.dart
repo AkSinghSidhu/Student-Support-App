@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../app_constants.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  static const String _themeKey = 'theme_mode';
   ThemeMode _themeMode = ThemeMode.system;
 
   ThemeProvider() {
@@ -21,7 +21,7 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedTheme = prefs.getString(_themeKey);
+    final savedTheme = prefs.getString(AppConstants.themeModeKey);
     if (savedTheme != null) {
       _themeMode = ThemeMode.values.firstWhere(
         (e) => e.toString() == savedTheme,
@@ -38,7 +38,7 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
     
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_themeKey, mode.toString());
+    await prefs.setString(AppConstants.themeModeKey, mode.toString());
   }
 
   void toggleTheme() {

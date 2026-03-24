@@ -4,11 +4,21 @@ import '../database_service.dart';
 import '../queue_service.dart';
 
 class FormSubmissionHelper {
+  static const List<String> _allowedTypes = ['complaints', 'feedback'];
+
   static Future<bool> submitForm({
     required String type,
     required String auid,
     required Map<String, dynamic> data,
   }) async {
+    if (!_allowedTypes.contains(type)) {
+      developer.log(
+        'Blocked invalid submission type: $type',
+        name: 'FormSubmissionHelper',
+      );
+      return false;
+    }
+
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
       final isOnline = !connectivityResult.contains(ConnectivityResult.none);

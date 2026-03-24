@@ -80,7 +80,7 @@ class AppTheme {
       // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.primaryDarkBlue.withOpacity(0.05),
+        fillColor: AppColors.primaryDarkBlue.withValues(alpha: 0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -104,7 +104,7 @@ class AppTheme {
           vertical: 14,
         ),
         hintStyle: TextStyle(
-          color: AppColors.textSecondaryLight.withOpacity(0.6),
+          color: AppColors.textSecondaryLight.withValues(alpha: 0.6),
           fontSize: 14,
         ),
       ),
@@ -245,14 +245,14 @@ class AppTheme {
           vertical: 14,
         ),
         hintStyle: TextStyle(
-          color: AppColors.textSecondaryDark.withOpacity(0.6),
+          color: AppColors.textSecondaryDark.withValues(alpha: 0.6),
           fontSize: 14,
         ),
       ),
 
       // Divider Theme
       dividerTheme: DividerThemeData(
-        color: AppColors.primaryWhite.withOpacity(0.1),
+        color: AppColors.primaryWhite.withValues(alpha: 0.1),
         thickness: 1,
         space: 1,
       ),
@@ -265,7 +265,7 @@ class AppTheme {
     borderRadius: BorderRadius.circular(16),
     boxShadow: isDarkMode ? [] : [
       BoxShadow(
-        color: AppColors.primaryBlack.withOpacity(0.08),
+        color: AppColors.primaryBlack.withValues(alpha: 0.08),
         blurRadius: 20,
         offset: const Offset(0, 4),
       ),

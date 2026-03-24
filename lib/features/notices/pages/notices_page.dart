@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/services/notice_service.dart';
 import '../../../core/services/cache_service.dart';
+import '../../../shared/widgets/offline_banner.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// Notices page with announcements list and filters.
 class NoticesPage extends StatefulWidget {
@@ -12,9 +16,51 @@ class NoticesPage extends StatefulWidget {
   State<NoticesPage> createState() => _NoticesPageState();
 }
 
-class _NoticesPageState extends State<NoticesPage> {
+class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStateMixin {
   String _selectedFilter = 'All';
   final List<String> _filters = ['All', 'Academic', 'Events', 'Exam', 'General'];
+
+  late final Stream<List<Map<String, dynamic>>> _noticesStream;
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+    _noticesStream = NoticeService().noticesStream();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _fadeAnim = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOut,
+    );
+    _animController.forward();
+  }
+
+  Future<void> _checkConnectivity() async {
+    final result = await Connectivity().checkConnectivity();
+    if (mounted) {
+      setState(() {
+        _isOffline = result.contains(ConnectivityResult.none);
+      });
+    }
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _noticesStream = NoticeService().noticesStream();
+    });
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
 
   List<Map<String, dynamic>> _filteredNotices(List<Map<String, dynamic>> notices) =>
       _selectedFilter == 'All'
@@ -23,13 +69,14 @@ class _NoticesPageState extends State<NoticesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       appBar: const CustomAppBar(title: 'Notices'),
       body: Column(
         children: [
+          if (_isOffline) const OfflineBanner(),
           // Filter chips
           Container(
             margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -47,7 +94,7 @@ class _NoticesPageState extends State<NoticesPage> {
                     decoration: BoxDecoration(
                       color: isActive ? AppColors.noticesColor : (isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: isActive ? AppColors.noticesColor : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withOpacity(0.3)),
+                      border: Border.all(color: isActive ? AppColors.noticesColor : (isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight).withValues(alpha: 0.3)),
                     ),
                     alignment: Alignment.center,
                     child: Text(_filters[i], style: TextStyle(
@@ -61,9 +108,12 @@ class _NoticesPageState extends State<NoticesPage> {
           ),
           // Notices list from Firebase
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              color: AppColors.noticesColor,
+              child: StreamBuilder<List<Map<String, dynamic>>>(
               initialData: CacheService.getNotices(),
-              stream: NoticeService().noticesStream(),
+              stream: _noticesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -80,13 +130,21 @@ class _NoticesPageState extends State<NoticesPage> {
                   return const Center(child: Text('No notices found'));
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: filtered.length,
-                  itemBuilder: (c, i) => _buildNoticeCard(filtered[i], isDarkMode),
+                return FadeTransition(
+                  opacity: _fadeAnim,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: filtered.length,
+                    itemBuilder: (c, i) => AnimatedOpacity(
+                      opacity: 1.0,
+                      duration: Duration(milliseconds: 300 + (i * 50)),
+                      child: _buildNoticeCard(filtered[i], isDarkMode),
+                    ),
+                  ),
                 );
               },
             ),
+          ),
           ),
         ],
       ),
@@ -110,20 +168,20 @@ class _NoticesPageState extends State<NoticesPage> {
       decoration: BoxDecoration(
         color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
         borderRadius: BorderRadius.circular(14),
-        border: notice['important'] ? Border.all(color: AppColors.error.withOpacity(0.5)) : null,
+        border: notice['important'] ? Border.all(color: AppColors.error.withValues(alpha: 0.5)) : null,
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: AppColors.noticesColor.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
+            decoration: BoxDecoration(color: AppColors.noticesColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
             child: Text(notice['category'], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.noticesColor)),
           ),
           if (notice['important']) ...[
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-              decoration: BoxDecoration(color: AppColors.error.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
+              decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)),
               child: const Text('Important', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.error)),
             ),
           ],

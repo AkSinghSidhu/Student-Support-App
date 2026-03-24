@@ -1,13 +1,16 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/theme_provider.dart';
+import 'dart:developer' as developer;
+import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../core/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/services/cache_service.dart';
 import '../../core/services/background_service.dart';
+import '../../core/services/notice_service.dart';
 
 class AppDrawer extends StatefulWidget {
   final String studentName;
@@ -26,41 +29,52 @@ class AppDrawer extends StatefulWidget {
 }
 
 class _AppDrawerState extends State<AppDrawer> {
-  String _currentLanguage = 'English';
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
-    _loadLanguage();
+    _loadAppVersion();
   }
 
-  Future<void> _loadLanguage() async {
+  Future<void> _loadAppVersion() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getString('language') ?? 'English';
+      final info = await PackageInfo.fromPlatform();
       if (mounted) {
-        setState(() => _currentLanguage = saved);
+        setState(() => _appVersion = info.version);
       }
     } catch (e) {
-      developer.log('Language load failed: $e', name: 'AppDrawer');
+      developer.log(
+        'Failed to load app version: $e',
+        name: 'AppDrawer',
+      );
+      if (mounted) {
+        setState(() => _appVersion = '0.1.0');
+      }
     }
   }
+
 
   Future<void> _handleLogout(BuildContext dialogContext) async {
     Navigator.pop(dialogContext);
 
-    try {
-      await CacheService.clearAllUserCache();
-    } catch (_) {}
-
+    NoticeService().stopListening();
     cancelAttendanceCheck();
 
     try {
+      await CacheService.clearAllUserCache();
+    } catch (e) {
+      developer.log('Logout cleanup error: $e', name: 'AppDrawer');
+    }
+
+    try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('logged_in_auid');
-      await prefs.remove('remember_me');
-      await prefs.remove('theme_mode');
-    } catch (_) {}
+      await prefs.remove(AppConstants.auidKey);
+      await prefs.remove(AppConstants.rememberMeKey);
+      await prefs.remove(AppConstants.themeModeKey);
+    } catch (e) {
+      developer.log('Logout cleanup error: $e', name: 'AppDrawer');
+    }
 
     if (mounted) {
       AppRoutes.navigateClearStack(context, AppRoutes.login);
@@ -309,87 +323,12 @@ class _AppDrawerState extends State<AppDrawer> {
                   // ─── GENERAL ───
                   _buildSectionLabel('GENERAL', isDarkMode),
 
-                  // Language
-                  _buildTile(
-                    icon: Icons.language_outlined,
-                    iconColor: const Color(0xFF16A34A),
-                    title: 'Language',
-                    subtitle: _currentLanguage,
-                    isDarkMode: isDarkMode,
-                    onTap: () {
-                      final rootContext = context;
-                      Navigator.pop(context);
-                      showModalBottomSheet(
-                        context: rootContext,
-                        backgroundColor: isDarkMode ? AppColors.cardBackgroundDark : AppColors.cardBackgroundLight,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                        ),
-                        isScrollControlled: false,
-                        builder: (sheetContext) {
-                          return SizedBox(
-                            height: 260,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Language',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  for (final lang in ['English', 'Hindi', 'Punjabi'])
-                                    ListTile(
-                                      title: Text(
-                                        lang,
-                                        style: TextStyle(
-                                          color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                                        ),
-                                      ),
-                                      leading: Radio<String>(
-                                        value: lang,
-                                        groupValue: _currentLanguage,
-                                        activeColor: AppColors.primaryGold,
-                                        onChanged: (val) async {
-                                          final messenger = ScaffoldMessenger.of(rootContext);
-                                          try {
-                                            final prefs = await SharedPreferences.getInstance();
-                                            await prefs.setString('language', lang);
-                                            if (mounted) {
-                                              setState(() => _currentLanguage = lang);
-                                            }
-                                          } catch (e) {
-                                            developer.log('Language save failed: $e', name: 'AppDrawer');
-                                          }
-                                          if (sheetContext.mounted) {
-                                            Navigator.pop(sheetContext);
-                                          }
-                                          messenger.showSnackBar(
-                                            const SnackBar(content: Text('Language will apply on next launch')),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-
                   // About
                   _buildTile(
                     icon: Icons.info_outline,
                     iconColor: const Color(0xFF6B7280),
                     title: 'About',
-                    subtitle: 'Version 0.1.0',
+                    subtitle: 'Version $_appVersion',
                     isDarkMode: isDarkMode,
                     onTap: () {
                       showDialog(
@@ -423,7 +362,7 @@ class _AppDrawerState extends State<AppDrawer> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Version 0.1.0',
+                                  'Version $_appVersion',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 13,
@@ -549,7 +488,7 @@ class _AppDrawerState extends State<AppDrawer> {
             padding: const EdgeInsets.only(bottom: 16, top: 8),
             child: Center(
               child: Text(
-                'Version 0.1.0',
+                'Version $_appVersion',
                 style: TextStyle(
                   fontSize: 11,
                   color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,

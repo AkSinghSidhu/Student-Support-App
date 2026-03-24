@@ -4,8 +4,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'cache_service.dart';
+import '../app_constants.dart';
 import '../database_service.dart';
-
 /// Service to stream notices from Firebase RTDB and send notifications for new ones.
 /// Self-contained: uses its own notification channel so it doesn't touch
 /// attendance notification logic at all.
@@ -16,7 +16,6 @@ class NoticeService {
 
   StreamSubscription<DatabaseEvent>? _childAddedSubscription;
 
-  static const String _seenNoticeIdsKey = 'seen_notice_ids';
   static const String _noticeChannelId = 'notice_alerts';
   static const String _noticeChannelName = 'Notice Alerts';
 
@@ -88,16 +87,18 @@ class NoticeService {
 
     final prefs = await SharedPreferences.getInstance();
     final seenIds =
-        (prefs.getStringList(_seenNoticeIdsKey) ?? []).toSet();
+        (prefs.getStringList(AppConstants.seenNoticeIdsKey) ?? []).toSet();
     final bool isFirstRun = seenIds.isEmpty;
 
     // If first run, do a one-time read to seed the seen set
     if (isFirstRun) {
       final snapshot = await _noticesRef.get();
       if (snapshot.exists) {
+        final rawValue = snapshot.value;
+        if (rawValue is! Map) return;
         final allIds =
-            Map<String, dynamic>.from(snapshot.value as Map).keys.toList();
-        await prefs.setStringList(_seenNoticeIdsKey, allIds);
+            Map<String, dynamic>.from(rawValue).keys.toList();
+        await prefs.setStringList(AppConstants.seenNoticeIdsKey, allIds);
         developer.log(
           'First run: cached ${allIds.length} existing notice IDs',
           name: 'NoticeService',
@@ -115,7 +116,7 @@ class NoticeService {
         // Reload prefs to get the latest seen set
         await prefs.reload();
         final currentSeen =
-            (prefs.getStringList(_seenNoticeIdsKey) ?? []).toSet();
+            (prefs.getStringList(AppConstants.seenNoticeIdsKey) ?? []).toSet();
 
         if (currentSeen.contains(id)) {
           // Already seen — skip (this happens for existing children on subscribe)
@@ -123,7 +124,9 @@ class NoticeService {
         }
 
         // It's a genuinely new notice — send notification
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final rawValue = event.snapshot.value;
+        if (rawValue is! Map) return;
+        final data = Map<String, dynamic>.from(rawValue);
         final title = data['title'] ?? 'New Notice';
         final category = data['category'] ?? '';
         final important = data['important'] == true;
@@ -141,7 +144,7 @@ class NoticeService {
         // Add to seen set
         currentSeen.add(id);
         await prefs.setStringList(
-            _seenNoticeIdsKey, currentSeen.toList());
+            AppConstants.seenNoticeIdsKey, currentSeen.toList());
       } catch (e) {
         developer.log('Error in notice child listener: $e',
             name: 'NoticeService');
@@ -154,12 +157,15 @@ class NoticeService {
     return _noticesRef.onValue.map((DatabaseEvent event) {
       if (!event.snapshot.exists) return <Map<String, dynamic>>[];
 
-      final noticesMap =
-          Map<String, dynamic>.from(event.snapshot.value as Map);
+      final rawValue = event.snapshot.value;
+      if (rawValue is! Map) return <Map<String, dynamic>>[];
+      
+      final noticesMap = Map<String, dynamic>.from(rawValue);
       final List<Map<String, dynamic>> notices = [];
 
       noticesMap.forEach((key, value) {
-        final notice = Map<String, dynamic>.from(value as Map);
+        if (value is! Map) return;
+        final notice = Map<String, dynamic>.from(value);
         notices.add({
           'id': key,
           'title': notice['title'] ?? '',

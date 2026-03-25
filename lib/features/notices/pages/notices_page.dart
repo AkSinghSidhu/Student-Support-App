@@ -5,8 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/services/notice_service.dart';
 import '../../../core/services/cache_service.dart';
-import '../../../shared/widgets/offline_banner.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../../shared/widgets/search_bar_widget.dart';
+import '../../../shared/widgets/shimmer_loader.dart';
 
 /// Notices page with announcements list and filters.
 class NoticesPage extends StatefulWidget {
@@ -20,52 +20,52 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
   String _selectedFilter = 'All';
   final List<String> _filters = ['All', 'Academic', 'Events', 'Exam', 'General'];
 
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   late final Stream<List<Map<String, dynamic>>> _noticesStream;
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
-  bool _isOffline = false;
+  late AnimationController _listController;
 
   @override
   void initState() {
     super.initState();
-    _checkConnectivity();
     _noticesStream = NoticeService().noticesStream();
-    _animController = AnimationController(
+    _listController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _fadeAnim = CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeOut,
-    );
-    _animController.forward();
-  }
-
-  Future<void> _checkConnectivity() async {
-    final result = await Connectivity().checkConnectivity();
-    if (mounted) {
+    _listController.forward();
+    _searchController.addListener(() {
       setState(() {
-        _isOffline = result.contains(ConnectivityResult.none);
+        _searchQuery = _searchController.text.toLowerCase();
       });
-    }
+    });
   }
 
   Future<void> _refresh() async {
-    setState(() {
-      _noticesStream = NoticeService().noticesStream();
-    });
+    _listController.reset();
+    _listController.forward();
   }
 
   @override
   void dispose() {
-    _animController.dispose();
+    _searchController.dispose();
+    _listController.dispose();
     super.dispose();
   }
 
-  List<Map<String, dynamic>> _filteredNotices(List<Map<String, dynamic>> notices) =>
-      _selectedFilter == 'All'
-          ? notices
-          : notices.where((n) => n['category'] == _selectedFilter).toList();
+  List<Map<String, dynamic>> _filteredNotices(List<Map<String, dynamic>> notices) {
+    return notices.where((n) {
+      final matchesFilter = _selectedFilter == 'All' || n['category'] == _selectedFilter;
+      if (!matchesFilter) return false;
+      
+      if (_searchQuery.isEmpty) return true;
+      
+      final title = (n['title'] as String).toLowerCase();
+      final category = (n['category'] as String? ?? '').toLowerCase();
+      return title.contains(_searchQuery) || category.contains(_searchQuery);
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +76,11 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
       appBar: const CustomAppBar(title: 'Notices'),
       body: Column(
         children: [
-          if (_isOffline) const OfflineBanner(),
+          SearchBarWidget(
+            controller: _searchController,
+            hint: 'Search notices...',
+            isDarkMode: isDarkMode,
+          ),
           // Filter chips
           Container(
             margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -87,7 +91,11 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
               itemBuilder: (c, i) {
                 final isActive = _selectedFilter == _filters[i];
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedFilter = _filters[i]),
+                  onTap: () {
+                    setState(() => _selectedFilter = _filters[i]);
+                    _listController.reset();
+                    _listController.forward();
+                  },
                   child: Container(
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -116,7 +124,7 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
               stream: _noticesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                  return NoticesShimmer(isDarkMode: isDarkMode);
                 }
 
                 if (snapshot.hasError && !snapshot.hasData) {
@@ -130,17 +138,27 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
                   return const Center(child: Text('No notices found'));
                 }
 
-                return FadeTransition(
-                  opacity: _fadeAnim,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: filtered.length,
-                    itemBuilder: (c, i) => AnimatedOpacity(
-                      opacity: 1.0,
-                      duration: Duration(milliseconds: 300 + (i * 50)),
-                      child: _buildNoticeCard(filtered[i], isDarkMode),
-                    ),
-                  ),
+                return ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: filtered.length,
+                  itemBuilder: (c, i) {
+                    final startInterval = (i * 0.1).clamp(0.0, 0.6);
+                    final endInterval = (startInterval + 0.4).clamp(0.0, 1.0);
+                    final itemAnim = CurvedAnimation(
+                      parent: _listController,
+                      curve: Interval(startInterval, endInterval, curve: Curves.easeOutCubic),
+                    );
+                    return FadeTransition(
+                      opacity: itemAnim,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.3),
+                          end: Offset.zero,
+                        ).animate(itemAnim),
+                        child: _buildNoticeCard(filtered[i], isDarkMode),
+                      ),
+                    );
+                  },
                 );
               },
             ),

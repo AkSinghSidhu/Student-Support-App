@@ -7,6 +7,8 @@ import '../../features/syllabus/pages/syllabus_page.dart';
 import '../../features/resources/pages/resources_page.dart';
 import '../../features/attendance/pages/attendance_page.dart';
 import '../../features/notices/pages/notices_page.dart';
+import '../../features/onboarding/onboarding_page.dart';
+import '../../features/history/history_page.dart';
 
 /// Named route definitions and route generator for clean navigation.
 class AppRoutes {
@@ -21,6 +23,8 @@ class AppRoutes {
   static const String resources = '/resources';
   static const String attendance = '/attendance';
   static const String notices = '/notices';
+  static const String onboarding = '/onboarding';
+  static const String history = '/history';
 
   /// Route generator for MaterialApp
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -41,6 +45,10 @@ class AppRoutes {
         return _buildPageRoute(const AttendancePage(), settings);
       case notices:
         return _buildPageRoute(const NoticesPage(), settings);
+      case onboarding:
+        return _buildPageRoute(const OnboardingPage(), settings);
+      case history:
+        return _buildPageRoute(const HistoryPage(), settings);
       default:
         return _buildPageRoute(const LoginPage(), settings);
     }

@@ -4,6 +4,8 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/loading_overlay.dart';
+import '../../../shared/widgets/search_bar_widget.dart';
+import '../../../shared/widgets/shimmer_loader.dart';
 
 /// Syllabus viewer page with semester and subject selection.
 class SyllabusPage extends StatefulWidget {
@@ -20,6 +22,10 @@ class _SyllabusPageState extends State<SyllabusPage>
   
   int _selectedSemester = 1;
   String? _selectedSubject;
+  bool _isLoading = true;
+  
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   // Sample data - will be replaced by Firebase
   final Map<int, List<Map<String, dynamic>>> _syllabusData = {
@@ -52,7 +58,20 @@ class _SyllabusPageState extends State<SyllabusPage>
       parent: _animController,
       curve: Curves.easeOut,
     );
-    _animController.forward();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+    _simulateLoading();
+  }
+
+  Future<void> _simulateLoading() async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (mounted) {
+      setState(() => _isLoading = false);
+      _animController.forward();
+    }
   }
 
   Future<void> _refresh() async {
@@ -63,6 +82,7 @@ class _SyllabusPageState extends State<SyllabusPage>
 
   @override
   void dispose() {
+    _searchController.dispose();
     _animController.dispose();
     super.dispose();
   }
@@ -71,6 +91,20 @@ class _SyllabusPageState extends State<SyllabusPage>
   Widget build(BuildContext context) {
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
+        appBar: const CustomAppBar(title: 'Syllabus'),
+        body: ShimmerLoader(
+          isDarkMode: isDarkMode,
+          child: ListView.builder(
+            itemCount: 4,
+            itemBuilder: (_, __) => ShimmerCard(height: 70, isDarkMode: isDarkMode),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       appBar: const CustomAppBar(title: 'Syllabus'),
@@ -78,9 +112,13 @@ class _SyllabusPageState extends State<SyllabusPage>
         opacity: _fadeAnim,
         child: Column(
           children: [
+            SearchBarWidget(
+              controller: _searchController,
+              hint: 'Search subjects...',
+              isDarkMode: isDarkMode,
+            ),
             // Semester selector
             _buildSemesterSelector(isDarkMode),
-            const SizedBox(height: 16),
             // Subject list
             Expanded(child: _buildSubjectList(isDarkMode)),
           ],
@@ -147,7 +185,12 @@ class _SyllabusPageState extends State<SyllabusPage>
   }
 
   Widget _buildSubjectList(bool isDarkMode) {
-    final subjects = _syllabusData[_selectedSemester] ?? [];
+    final List<Map<String, dynamic>> allSubjects = _syllabusData[_selectedSemester] ?? [];
+    final subjects = allSubjects.where((s) {
+      if (_searchQuery.isEmpty) return true;
+      final name = (s['name'] as String).toLowerCase();
+      return name.contains(_searchQuery);
+    }).toList();
     
     if (subjects.isEmpty) {
       return const EmptyState(

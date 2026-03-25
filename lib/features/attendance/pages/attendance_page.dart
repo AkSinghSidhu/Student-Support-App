@@ -7,8 +7,7 @@ import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/services/cache_service.dart';
 import '../../../core/database_service.dart';
 import '../../../core/app_constants.dart';
-import '../../../shared/widgets/offline_banner.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../../shared/widgets/shimmer_loader.dart';
 
 /// Attendance page with summary and push notification alerts.
 class AttendancePage extends StatefulWidget {
@@ -23,24 +22,13 @@ class _AttendancePageState extends State<AttendancePage> {
   static const double alertThreshold = AppConstants.attendanceThreshold;
   bool _isLoading = true;
   String? _errorMessage;
-  bool _isOffline = false;
 
   List<Map<String, dynamic>> _subjects = [];
 
   @override
   void initState() {
     super.initState();
-    _checkConnectivity();
     _loadAttendanceData();
-  }
-
-  Future<void> _checkConnectivity() async {
-    final result = await Connectivity().checkConnectivity();
-    if (mounted) {
-      setState(() {
-        _isOffline = result.contains(ConnectivityResult.none);
-      });
-    }
   }
 
   Future<void> _refresh() async {
@@ -165,9 +153,7 @@ class _AttendancePageState extends State<AttendancePage> {
       return Scaffold(
         backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
         appBar: const CustomAppBar(title: 'Attendance'),
-        body: const Center(
-          child: CircularProgressIndicator(color: AppColors.attendanceColor),
-        ),
+        body: AttendanceShimmer(isDarkMode: isDarkMode),
       );
     }
 
@@ -210,11 +196,7 @@ class _AttendancePageState extends State<AttendancePage> {
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
       appBar: const CustomAppBar(title: 'Attendance'),
-      body: Column(
-        children: [
-          if (_isOffline) const OfflineBanner(),
-          Expanded(
-            child: RefreshIndicator(
+      body: RefreshIndicator(
               onRefresh: _refresh,
               color: AppColors.attendanceColor,
               child: ListView(
@@ -357,9 +339,6 @@ class _AttendancePageState extends State<AttendancePage> {
           }),
         ],
       ),
-      ),
-      ),
-      ],
       ),
     );
   }

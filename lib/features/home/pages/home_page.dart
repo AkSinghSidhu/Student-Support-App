@@ -151,6 +151,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         }
       }
     } catch (e) {
+      if (!mounted) return;
       // Handle error silently, keep default values
     }
   }

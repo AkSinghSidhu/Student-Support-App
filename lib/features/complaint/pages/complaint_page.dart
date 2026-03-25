@@ -6,6 +6,7 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/helpers/form_submission_helper.dart';
+import '../../../core/helpers/input_sanitizer.dart';
 import '../../../core/app_constants.dart';
 
 /// Complaint submission page with form for reporting issues.
@@ -65,14 +66,7 @@ class _ComplaintPageState extends State<ComplaintPage>
     super.dispose();
   }
 
-  String _sanitizeInput(String input) {
-    return input
-      .replaceAll('.', '')
-      .replaceAll('#', '')
-      .replaceAll('\$', '')
-      .replaceAll('[', '')
-      .replaceAll(']', '');
-  }
+
 
   Future<void> _submitComplaint() async {
     if (_formKey.currentState!.validate()) {
@@ -86,8 +80,8 @@ class _ComplaintPageState extends State<ComplaintPage>
           throw Exception('User not logged in');
         }
 
-        final sanitizedSubject = _sanitizeInput(_subjectController.text.trim());
-        final sanitizedDescription = _sanitizeInput(_descriptionController.text.trim());
+        final sanitizedSubject = InputSanitizer.sanitize(_subjectController.text.trim());
+        final sanitizedDescription = InputSanitizer.sanitize(_descriptionController.text.trim());
 
         final complaintData = {
           'userId': auid,

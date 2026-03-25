@@ -16,7 +16,7 @@ class FormSubmissionHelper {
         'Blocked invalid submission type: $type',
         name: 'FormSubmissionHelper',
       );
-      return false;
+      throw ArgumentError('Invalid form type: $type');
     }
 
     try {

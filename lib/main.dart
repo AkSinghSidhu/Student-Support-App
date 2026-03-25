@@ -12,12 +12,33 @@ import 'core/services/background_service.dart'; // Import background service
 import 'core/services/notice_service.dart';
 import 'core/services/cache_service.dart';
 import 'dart:async';
+import 'dart:developer' as developer;
+import 'dart:ui' show PlatformDispatcher;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'core/queue_service.dart';
 import 'core/services/notification_store.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    developer.log(
+      'Flutter error: ${details.exception}',
+      name: 'GlobalErrorHandler',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    developer.log(
+      'Platform error: $error',
+      name: 'GlobalErrorHandler',
+      error: error,
+      stackTrace: stack,
+    );
+    return true;
+  };
+
   await Firebase.initializeApp();
   
   // Initialize offline cache

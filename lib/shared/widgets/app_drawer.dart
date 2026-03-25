@@ -257,6 +257,17 @@ class _AppDrawerState extends State<AppDrawer> {
                     },
                   ),
                   _buildTile(
+                    icon: Icons.history,
+                    iconColor: const Color(0xFFF59E0B),
+                    title: 'My History',
+                    subtitle: 'Complaints & feedback',
+                    isDarkMode: isDarkMode,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, AppRoutes.history);
+                    },
+                  ),
+                  _buildTile(
                     icon: Icons.lock_outline,
                     iconColor: const Color(0xFF3B82F6),
                     title: 'Change Password',

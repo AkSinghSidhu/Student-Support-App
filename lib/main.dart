@@ -18,6 +18,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'core/queue_service.dart';
 import 'core/services/notification_store.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'shared/widgets/offline_banner.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -60,13 +61,14 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final loggedInAuid = prefs.getString(AppConstants.auidKey);
   final isLoggedIn = loggedInAuid != null && loggedInAuid.isNotEmpty;
+  final onboardingDone = prefs.getBool('onboarding_complete') ?? false;
   
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: StudentSupportApp(isLoggedIn: isLoggedIn),
+      child: StudentSupportApp(isLoggedIn: isLoggedIn, onboardingDone: onboardingDone),
     ),
   );
 }
@@ -74,8 +76,13 @@ void main() async {
 
 class StudentSupportApp extends StatefulWidget {
   final bool isLoggedIn;
+  final bool onboardingDone;
   
-  const StudentSupportApp({super.key, required this.isLoggedIn});
+  const StudentSupportApp({
+    super.key, 
+    required this.isLoggedIn,
+    required this.onboardingDone,
+  });
 
   @override
   State<StudentSupportApp> createState() => _StudentSupportAppState();
@@ -85,6 +92,7 @@ class _StudentSupportAppState extends State<StudentSupportApp> {
   final Connectivity _connectivity = Connectivity();
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _isSyncing = false;
+  bool _isOffline = false;
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   @override
@@ -95,6 +103,13 @@ class _StudentSupportAppState extends State<StudentSupportApp> {
 
   void _initConnectivityListener() {
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) async {
+      // Update offline state
+      if (mounted) {
+        setState(() {
+          _isOffline = results.every((r) => r == ConnectivityResult.none);
+        });
+      }
+
       // If connected to mobile or wifi
       if (results.contains(ConnectivityResult.mobile) || results.contains(ConnectivityResult.wifi)) {
         final pendingItems = await QueueService.getPendingItems();
@@ -150,8 +165,14 @@ class _StudentSupportAppState extends State<StudentSupportApp> {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeProvider.themeMode,
-          initialRoute: widget.isLoggedIn ? AppRoutes.home : AppRoutes.login,
+          initialRoute: widget.isLoggedIn 
+              ? AppRoutes.home 
+              : (widget.onboardingDone ? AppRoutes.login : AppRoutes.onboarding),
           onGenerateRoute: AppRoutes.generateRoute,
+          builder: (context, child) => OfflineBanner(
+            isOffline: _isOffline,
+            child: child!,
+          ),
         );
       },
     );

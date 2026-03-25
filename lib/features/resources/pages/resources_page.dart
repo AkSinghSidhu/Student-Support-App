@@ -4,7 +4,8 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/loading_overlay.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/search_bar_widget.dart';
+import '../../../shared/widgets/shimmer_loader.dart';
 
 /// Resources page with tabs for Books, Notes, and PYQs.
 class ResourcesPage extends StatefulWidget {
@@ -20,6 +21,14 @@ class _ResourcesPageState extends State<ResourcesPage>
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   bool _isLoading = true;
+
+  final TextEditingController _booksSearchController = TextEditingController();
+  final TextEditingController _notesSearchController = TextEditingController();
+  final TextEditingController _pyqsSearchController = TextEditingController();
+  
+  String _booksQuery = '';
+  String _notesQuery = '';
+  String _pyqsQuery = '';
 
   // Sample data - will be replaced by Firebase
   final List<Map<String, dynamic>> _books = [
@@ -52,6 +61,11 @@ class _ResourcesPageState extends State<ResourcesPage>
       parent: _animController,
       curve: Curves.easeOut,
     );
+    
+    _booksSearchController.addListener(() => setState(() => _booksQuery = _booksSearchController.text.toLowerCase()));
+    _notesSearchController.addListener(() => setState(() => _notesQuery = _notesSearchController.text.toLowerCase()));
+    _pyqsSearchController.addListener(() => setState(() => _pyqsQuery = _pyqsSearchController.text.toLowerCase()));
+
     _simulateLoading();
   }
 
@@ -65,6 +79,9 @@ class _ResourcesPageState extends State<ResourcesPage>
 
   @override
   void dispose() {
+    _booksSearchController.dispose();
+    _notesSearchController.dispose();
+    _pyqsSearchController.dispose();
     _tabController.dispose();
     _animController.dispose();
     super.dispose();
@@ -78,32 +95,12 @@ class _ResourcesPageState extends State<ResourcesPage>
       return Scaffold(
         backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
         appBar: const CustomAppBar(title: 'Resources'),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: ShimmerBox(
-                width: double.infinity,
-                height: 48,
-                borderRadius: 14,
-                isDarkMode: isDarkMode,
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                children: List.generate(4, (i) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: ShimmerBox(
-                    width: double.infinity,
-                    height: 80,
-                    borderRadius: 14,
-                    isDarkMode: isDarkMode,
-                  ),
-                )),
-              ),
-            ),
-          ],
+        body: ShimmerLoader(
+          isDarkMode: isDarkMode,
+          child: ListView.builder(
+            itemCount: 4,
+            itemBuilder: (_, __) => ShimmerCard(height: 70, isDarkMode: isDarkMode),
+          ),
         ),
       );
     }
@@ -117,15 +114,29 @@ class _ResourcesPageState extends State<ResourcesPage>
           children: [
             // Tab bar
             _buildTabBar(isDarkMode),
+            // Search bars mapped to tabs
+            AnimatedBuilder(
+              animation: _tabController,
+              builder: (context, _) {
+                final index = _tabController.index;
+                return SearchBarWidget(
+                  controller: index == 0
+                      ? _booksSearchController
+                      : (index == 1 ? _notesSearchController : _pyqsSearchController),
+                  hint: 'Search ${index == 0 ? 'books' : (index == 1 ? 'notes' : 'PYQs')}...',
+                  isDarkMode: isDarkMode,
+                );
+              },
+            ),
             // Tab views
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 physics: const BouncingScrollPhysics(),
                 children: [
-                  _buildResourceList(_books, 'book', isDarkMode),
-                  _buildResourceList(_notes, 'note', isDarkMode),
-                  _buildResourceList(_pyqs, 'pyq', isDarkMode),
+                  _buildResourceList(_books, 'book', _booksQuery, isDarkMode),
+                  _buildResourceList(_notes, 'note', _notesQuery, isDarkMode),
+                  _buildResourceList(_pyqs, 'pyq', _pyqsQuery, isDarkMode),
                 ],
               ),
             ),
@@ -172,20 +183,27 @@ class _ResourcesPageState extends State<ResourcesPage>
     );
   }
 
-  Widget _buildResourceList(List<Map<String, dynamic>> items, String type, bool isDarkMode) {
-    if (items.isEmpty) {
+  Widget _buildResourceList(List<Map<String, dynamic>> items, String type, String query, bool isDarkMode) {
+    final filteredItems = items.where((item) {
+      if (query.isEmpty) return true;
+      final title = (item['title'] as String).toLowerCase();
+      // Only filter items list by title before rendering as requested
+      return title.contains(query);
+    }).toList();
+
+    if (filteredItems.isEmpty) {
       return const EmptyState(
         icon: Icons.folder_open_outlined,
-        title: 'No resources available',
+        title: 'No resources found',
       );
     }
 
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-      itemCount: items.length,
+      itemCount: filteredItems.length,
       itemBuilder: (context, index) {
-        return _buildResourceCard(items[index], type, isDarkMode);
+        return _buildResourceCard(filteredItems[index], type, isDarkMode);
       },
     );
   }

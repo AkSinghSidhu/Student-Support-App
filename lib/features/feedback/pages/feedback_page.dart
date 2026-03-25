@@ -6,6 +6,7 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/helpers/form_submission_helper.dart';
+import '../../../core/helpers/input_sanitizer.dart';
 import '../../../core/app_constants.dart';
 
 /// Feedback submission page with form for user feedback.
@@ -85,14 +86,7 @@ class _FeedbackPageState extends State<FeedbackPage>
     super.dispose();
   }
 
-  String _sanitizeInput(String input) {
-    return input
-      .replaceAll('.', '')
-      .replaceAll('#', '')
-      .replaceAll('\$', '')
-      .replaceAll('[', '')
-      .replaceAll(']', '');
-  }
+
 
   Future<void> _submitFeedback() async {
     if (_formKey.currentState!.validate() && _rating > 0) {
@@ -121,7 +115,7 @@ class _FeedbackPageState extends State<FeedbackPage>
           'teacher': _selectedTeacher,
           'category': _selectedCategory,
           'rating': _rating,
-          'message': _sanitizeInput(_feedbackController.text.trim()),
+          'message': InputSanitizer.sanitize(_feedbackController.text.trim()),
           'status': 'pending',
           'createdAt': DateTime.now().toIso8601String(),
         };

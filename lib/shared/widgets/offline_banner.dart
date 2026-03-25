@@ -1,36 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../core/theme/theme_provider.dart';
+import '../../core/theme/app_colors.dart';
 
 class OfflineBanner extends StatelessWidget {
-  const OfflineBanner({super.key});
+  final bool isOffline;
+  final Widget child;
+
+  const OfflineBanner({
+    super.key,
+    required this.isOffline,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: isDarkMode ? Colors.orange.withValues(alpha: 0.2) : Colors.amber.shade100,
-      child: Row(
-        children: [
-          Icon(
-            Icons.wifi_off_rounded,
-            size: 16,
-            color: isDarkMode ? Colors.orange : Colors.orange.shade800,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'You are offline — showing saved data',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: isDarkMode ? Colors.orange : Colors.orange.shade800,
-            ),
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          height: isOffline ? 32 : 0,
+          color: AppColors.warning,
+          child: isOffline
+              ? const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off, size: 14, color: Colors.white),
+                    SizedBox(width: 6),
+                    Text(
+                      'No internet — showing cached data',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                )
+              : const SizedBox.shrink(),
+        ),
+        Expanded(child: child),
+      ],
     );
   }
 }

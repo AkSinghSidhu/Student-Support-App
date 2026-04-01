@@ -81,8 +81,13 @@ void callbackDispatcher() {
       }
 
     } catch (e) {
-      // Log error internally, but return true so it can retry later
-      developer.log("WorkManager check failed: $e", name: 'BackgroundService');
+      developer.log(
+        'WorkManager attendance check failed: $e',
+        name: 'BackgroundService',
+      );
+      // Return false so WorkManager retries on next cycle
+      // instead of marking task as successful
+      return Future.value(false);
     }
     
     return Future.value(true);

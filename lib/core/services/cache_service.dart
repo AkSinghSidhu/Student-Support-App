@@ -1,9 +1,39 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'dart:developer' as developer;
 
 /// Service to handle offline caching of Firebase data using Hive.
 class CacheService {
+  static const _secureStorage = FlutterSecureStorage();
+  static const _hiveEncryptionKeyName = 'hive_encryption_key';
+
+  static Future<HiveAesCipher> _getEncryptionCipher() async {
+    try {
+      String? existingKey = await _secureStorage.read(
+        key: _hiveEncryptionKeyName,
+      );
+
+      if (existingKey == null) {
+        // Generate new 256-bit key
+        final key = Hive.generateSecureKey();
+        await _secureStorage.write(
+          key: _hiveEncryptionKeyName,
+          value: base64UrlEncode(key),
+        );
+        return HiveAesCipher(key);
+      }
+
+      return HiveAesCipher(base64Url.decode(existingKey));
+    } catch (e) {
+      developer.log(
+        'Error getting Hive cipher: $e',
+        name: 'CacheService',
+      );
+      rethrow;
+    }
+  }
+
   static const String _attendanceBox = 'attendance_cache';
   static const String _noticesBox = 'notices_cache';
   static const String _feedbackBox = 'feedback_cache';
@@ -14,12 +44,19 @@ class CacheService {
   /// Initialize Hive and open all necessary boxes
   static Future<void> initialize() async {
     await Hive.initFlutter();
+    final cipher = await _getEncryptionCipher();
     
     await Future.wait([
       Hive.openBox(_attendanceBox),
       Hive.openBox(_noticesBox),
-      Hive.openBox(_feedbackBox),
-      Hive.openBox(_complaintsBox),
+      Hive.openBox(
+        _feedbackBox,
+        encryptionCipher: cipher,
+      ),
+      Hive.openBox(
+        _complaintsBox,
+        encryptionCipher: cipher,
+      ),
       Hive.openBox(_syllabusBox),
       Hive.openBox(_resourcesBox),
     ]);

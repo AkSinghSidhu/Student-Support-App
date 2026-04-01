@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 
 /// Animated loading overlay for async operations.
 class LoadingOverlay extends StatelessWidget {
@@ -29,7 +30,7 @@ class LoadingOverlay extends StatelessWidget {
             opacity: isLoading ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 200),
             child: Container(
-              color: backgroundColor ?? (isDarkMode ? Colors.black.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.4)),
+              color: backgroundColor ?? (isDarkMode ? AppColors.primaryBlack.withValues(alpha: 0.6) : AppColors.primaryBlack.withValues(alpha: 0.4)),
               child: Center(
                 child: _LoadingIndicator(message: message),
               ),
@@ -78,7 +79,7 @@ class _LoadingIndicatorState extends State<_LoadingIndicator>
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
       decoration: BoxDecoration(
         color: isDarkMode ? AppColors.cardBackgroundDark : AppColors.primaryWhite,
         borderRadius: BorderRadius.circular(16),
@@ -113,12 +114,10 @@ class _LoadingIndicatorState extends State<_LoadingIndicator>
             ),
           ),
           if (widget.message != null) ...[
-            const SizedBox(height: 16),
+            AppSpacing.verticalMd,
             Text(
               widget.message!,
-              style: TextStyle(
-                fontSize: 14,
-                color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
@@ -152,12 +151,12 @@ class EmptyState extends StatelessWidget {
     
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: AppSpacing.paddingXl,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: AppSpacing.paddingLg,
               decoration: BoxDecoration(
                 color: primaryColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(24),
@@ -168,29 +167,24 @@ class EmptyState extends StatelessWidget {
                 color: primaryColor.withValues(alpha: 0.4),
               ),
             ),
-            const SizedBox(height: 20),
+            AppSpacing.verticalMd,
             Text(
               title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-              ),
+              style: Theme.of(context).textTheme.headlineMedium,
               textAlign: TextAlign.center,
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: 8),
+              AppSpacing.verticalSm,
               Text(
                 subtitle!,
-                style: TextStyle(
-                  fontSize: 14,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                 ),
                 textAlign: TextAlign.center,
               ),
             ],
             if (action != null) ...[
-              const SizedBox(height: 24),
+              AppSpacing.verticalLg,
               action!,
             ],
           ],

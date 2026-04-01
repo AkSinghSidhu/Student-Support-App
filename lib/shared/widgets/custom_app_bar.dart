@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 
 /// Custom app bar with gradient background and consistent styling.
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -31,14 +32,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       decoration: useGradient
           ? BoxDecoration(
               color: isDarkMode ? AppColors.surfaceDark : null,
-              gradient: isDarkMode ? null : const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.primaryDarkBlue,
-                  Color(0xFF010044),
-                ],
-              ),
+              gradient: isDarkMode ? null : AppColors.primaryGradient,
             )
           : BoxDecoration(
               color: isDarkMode ? AppColors.surfaceDark : AppColors.primaryDarkBlue,
@@ -60,13 +54,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   splashRadius: 24,
                 )
               else
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: AppColors.primaryWhite,
                     letterSpacing: 0.3,
                   ),
@@ -118,7 +110,7 @@ class GradientHeader extends StatelessWidget {
           children: [
             if (icon != null) ...[
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: AppSpacing.paddingMd,
                 decoration: BoxDecoration(
                   color: AppColors.primaryWhite.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(16),
@@ -129,23 +121,21 @@ class GradientHeader extends StatelessWidget {
                   color: AppColors.primaryGold,
                 ),
               ),
-              const SizedBox(height: 12),
+              AppSpacing.verticalSm,
             ],
             Text(
               title,
-              style: const TextStyle(
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: AppColors.primaryWhite,
-                letterSpacing: 0.5,
               ),
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: 6),
+              AppSpacing.verticalXs,
               Text(
                 subtitle!,
-                style: TextStyle(
-                  fontSize: 14,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.primaryWhite.withValues(alpha: 0.7),
                 ),
               ),

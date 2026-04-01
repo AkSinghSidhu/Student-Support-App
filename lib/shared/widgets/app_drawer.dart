@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/services/cache_service.dart';
 import '../../core/services/background_service.dart';
@@ -87,13 +88,10 @@ class _AppDrawerState extends State<AppDrawer> {
 
   Widget _buildSectionLabel(String text, bool isDarkMode) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, 20, AppSpacing.md, AppSpacing.sm),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 11,
-          letterSpacing: 1.2,
-          fontWeight: FontWeight.w600,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
         ),
       ),
@@ -123,16 +121,13 @@ class _AppDrawerState extends State<AppDrawer> {
         ),
         title: Text(
           title,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
-            fontSize: 12,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
           ),
         ),
@@ -172,61 +167,38 @@ class _AppDrawerState extends State<AppDrawer> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryWhite,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryGold.withValues(alpha: 0.4),
-                            blurRadius: 16,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.school_rounded,
-                        color: AppColors.primaryDarkBlue,
-                        size: 26,
-                      ),
-                    ),
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryGold,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        widget.studentName.isNotEmpty ? widget.studentName[0].toUpperCase() : 'S',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryDarkBlue,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Hi, ${widget.studentName}',
-                  style: const TextStyle(
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
                     color: AppColors.primaryWhite,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryGold.withValues(alpha: 0.4),
+                        blurRadius: 16,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.school_rounded,
+                    color: AppColors.primaryDarkBlue,
+                    size: 26,
                   ),
                 ),
-                const SizedBox(height: 4),
+                AppSpacing.verticalMd,
+                Text(
+                  'Hi, ${widget.studentName}',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: AppColors.primaryWhite,
+                    fontSize: 22,
+                  ),
+                ),
+                AppSpacing.verticalXs,
                 Text(
                   '${widget.studentAuid} • ${widget.studentDepartment}',
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.primaryWhite.withValues(alpha: 0.75),
                     fontSize: 13,
                   ),
@@ -495,18 +467,18 @@ class _AppDrawerState extends State<AppDrawer> {
           ),
 
           // ─── VERSION ───
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16, top: 8),
-            child: Center(
-              child: Text(
-                'Version $_appVersion',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md, top: AppSpacing.sm),
+              child: Center(
+                child: Text(
+                  'Version $_appVersion',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
+                    letterSpacing: 0,
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -533,7 +505,7 @@ class _AppDrawerState extends State<AppDrawer> {
           alignment: Alignment.center,
           child: Text(
             label,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               color: isSelected

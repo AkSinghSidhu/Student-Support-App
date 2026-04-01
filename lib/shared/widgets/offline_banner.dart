@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 
 class OfflineBanner extends StatelessWidget {
   final bool isOffline;
@@ -20,16 +21,15 @@ class OfflineBanner extends StatelessWidget {
           height: isOffline ? 32 : 0,
           color: AppColors.warning,
           child: isOffline
-              ? const Row(
+              ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.wifi_off, size: 14, color: Colors.white),
-                    SizedBox(width: 6),
+                    const Icon(Icons.wifi_off, size: 14, color: AppColors.primaryWhite),
+                    AppSpacing.horizontalSm,
                     Text(
                       'No internet — showing cached data',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.primaryWhite,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

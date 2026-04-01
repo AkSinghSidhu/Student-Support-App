@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
-
+import '../../core/theme/app_spacing.dart';
 class SearchBarWidget extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
@@ -18,7 +18,7 @@ class SearchBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
         color: isDarkMode
             ? AppColors.cardBackgroundDark
@@ -33,19 +33,17 @@ class SearchBarWidget extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
-        style: TextStyle(
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: isDarkMode
               ? AppColors.textPrimaryDark
               : AppColors.textPrimaryLight,
-          fontSize: 14,
         ),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(
+          hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: isDarkMode
                 ? AppColors.textSecondaryDark
                 : AppColors.textSecondaryLight,
-            fontSize: 14,
           ),
           prefixIcon: Icon(
             Icons.search,
@@ -74,7 +72,7 @@ class SearchBarWidget extends StatelessWidget {
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
+            horizontal: AppSpacing.md,
             vertical: 12,
           ),
         ),

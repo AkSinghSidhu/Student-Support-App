@@ -8,6 +8,9 @@ import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/helpers/form_submission_helper.dart';
 import '../../../core/helpers/input_sanitizer.dart';
 import '../../../core/app_constants.dart';
+import '../../../core/queue_service.dart';
+import '../../../core/routes/app_routes.dart';
+import '../../../models/models.dart';
 
 /// Feedback submission page with form for user feedback.
 class FeedbackPage extends StatefulWidget {
@@ -101,6 +104,8 @@ class _FeedbackPageState extends State<FeedbackPage>
 
       setState(() => _isSubmitting = true);
 
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+
       try {
         final prefs = await SharedPreferences.getInstance();
         final auid = prefs.getString(AppConstants.auidKey);
@@ -109,38 +114,42 @@ class _FeedbackPageState extends State<FeedbackPage>
           throw Exception('User not logged in');
         }
 
-        final feedbackData = {
-          'userId': auid,
-          'department': _selectedDepartment,
-          'teacher': _selectedTeacher,
-          'category': _selectedCategory,
-          'rating': _rating,
-          'message': InputSanitizer.sanitize(_feedbackController.text.trim()),
-          'status': 'pending',
-          'createdAt': DateTime.now().toIso8601String(),
-        };
+        final feedbackData = FeedbackModel(
+          userId: auid,
+          department: _selectedDepartment!,
+          teacher: _selectedTeacher!,
+          category: _selectedCategory,
+          rating: _rating,
+          message: InputSanitizer.sanitize(_feedbackController.text.trim()),
+          status: 'pending',
+          createdAt: DateTime.now().toIso8601String(),
+        ).toJson();
 
-        final submitted = await FormSubmissionHelper.submitForm(
+        // Optimistic UI Update: Add to queue and pop immediately
+        await QueueService.addToQueue('feedback', auid, feedbackData);
+        
+        if (mounted) {
+          AppRoutes.navigatorKey.currentState?.pop();
+        }
+        
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: const Text('Feedback submitted optimally!'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Process in background
+        FormSubmissionHelper.submitForm(
           type: 'feedback',
           auid: auid,
           data: feedbackData,
-        );
-        
-        if (submitted) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Feedback submitted successfully!'),
-                backgroundColor: AppColors.success,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            );
-            Navigator.pop(context);
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+        ).then((submitted) {
+          if (!submitted && mounted) {
+            scaffoldMessenger.showSnackBar(
               SnackBar(
                 content: const Text('No internet — saved as draft, will send automatically when you reconnect'),
                 backgroundColor: AppColors.warning,
@@ -149,20 +158,16 @@ class _FeedbackPageState extends State<FeedbackPage>
                 duration: const Duration(seconds: 4),
               ),
             );
-            Navigator.pop(context);
           }
-        }
+        });
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } finally {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
         if (mounted) {
           setState(() => _isSubmitting = false);
         }

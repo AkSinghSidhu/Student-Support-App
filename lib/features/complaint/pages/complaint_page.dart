@@ -8,6 +8,9 @@ import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../core/helpers/form_submission_helper.dart';
 import '../../../core/helpers/input_sanitizer.dart';
 import '../../../core/app_constants.dart';
+import '../../../core/queue_service.dart';
+import '../../../core/routes/app_routes.dart';
+import '../../../models/models.dart';
 
 /// Complaint submission page with form for reporting issues.
 class ComplaintPage extends StatefulWidget {
@@ -72,6 +75,8 @@ class _ComplaintPageState extends State<ComplaintPage>
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
       
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+
       try {
         final prefs = await SharedPreferences.getInstance();
         final auid = prefs.getString(AppConstants.auidKey);
@@ -83,37 +88,41 @@ class _ComplaintPageState extends State<ComplaintPage>
         final sanitizedSubject = InputSanitizer.sanitize(_subjectController.text.trim());
         final sanitizedDescription = InputSanitizer.sanitize(_descriptionController.text.trim());
 
-        final complaintData = {
-          'userId': auid,
-          'subject': sanitizedSubject,
-          'description': sanitizedDescription,
-          'type': _selectedType,
-          'urgency': _urgency,
-          'status': 'pending',
-          'createdAt': DateTime.now().toIso8601String(),
-        };
+        final complaintData = ComplaintModel(
+          userId: auid,
+          subject: sanitizedSubject,
+          description: sanitizedDescription,
+          type: _selectedType,
+          urgency: _urgency,
+          status: 'pending',
+          createdAt: DateTime.now().toIso8601String(),
+        ).toJson();
 
-        final submitted = await FormSubmissionHelper.submitForm(
+        // Optimistic UI Update: Add to queue and pop immediately
+        await QueueService.addToQueue('complaints', auid, complaintData);
+        
+        if (mounted) {
+          AppRoutes.navigatorKey.currentState?.pop();
+        }
+        
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: const Text('Complaint submitted optimally!'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Process in background
+        FormSubmissionHelper.submitForm(
           type: 'complaints',
           auid: auid,
           data: complaintData,
-        );
-
-        if (submitted) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Complaint submitted successfully!'),
-                backgroundColor: AppColors.success,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            );
-            Navigator.pop(context);
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+        ).then((submitted) {
+          if (!submitted && mounted) {
+            scaffoldMessenger.showSnackBar(
               SnackBar(
                 content: const Text('No internet — saved as draft, will send automatically when you reconnect'),
                 backgroundColor: AppColors.warning,
@@ -122,20 +131,16 @@ class _ComplaintPageState extends State<ComplaintPage>
                 duration: const Duration(seconds: 4),
               ),
             );
-            Navigator.pop(context);
           }
-        }
+        });
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } finally {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
         if (mounted) {
           setState(() => _isSubmitting = false);
         }

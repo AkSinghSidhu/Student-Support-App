@@ -3,15 +3,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../shared/utils/responsive_layout.dart';
 import '../widgets/feature_tile.dart';
-import '../../../core/database_service.dart';
 import '../../../core/app_constants.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../core/services/notification_store.dart';
 import '../../notifications/notifications_page.dart';
 import '../../../models/feature_data.dart';
+import '../../../core/repositories/user_repository.dart';
 
 /// Home page with animated feature grid after login.
 class HomePage extends StatefulWidget {
@@ -35,42 +36,42 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   final List<FeatureData> _features = [
     FeatureData(
-      title: 'Feedback',
+      title: AppConstants.tabFeedback,
       subtitle: 'Share your thoughts',
       icon: Icons.feedback_outlined,
       color: AppColors.feedbackColor,
       route: AppRoutes.feedback,
     ),
     FeatureData(
-      title: 'Complaints',
+      title: AppConstants.tabComplaints,
       subtitle: 'Report issues',
       icon: Icons.report_problem_outlined,
       color: AppColors.complaintColor,
       route: AppRoutes.complaint,
     ),
     FeatureData(
-      title: 'Syllabus',
+      title: AppConstants.navSyllabus,
       subtitle: 'Course structure',
       icon: Icons.menu_book_outlined,
       color: AppColors.syllabusColor,
       route: AppRoutes.syllabus,
     ),
     FeatureData(
-      title: 'Resources',
+      title: AppConstants.navResources,
       subtitle: 'Books, Notes & PYQs',
       icon: Icons.library_books_outlined,
       color: AppColors.resourcesColor,
       route: AppRoutes.resources,
     ),
     FeatureData(
-      title: 'Attendance',
+      title: AppConstants.navAttendance,
       subtitle: 'Track & alerts',
       icon: Icons.calendar_today_outlined,
       color: AppColors.attendanceColor,
       route: AppRoutes.attendance,
     ),
     FeatureData(
-      title: 'Notices',
+      title: AppConstants.navNotices,
       subtitle: 'Announcements',
       icon: Icons.campaign_outlined,
       color: AppColors.noticesColor,
@@ -122,32 +123,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
   }
 
+  final _userRepo = UserRepository();
+
   Future<void> _loadStudentData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final auid = prefs.getString(AppConstants.auidKey);
 
       if (auid != null && auid.isNotEmpty) {
-        final database = DatabaseService.db;
-
-        final snapshot = await database.child('users').child(auid).get();
-
-        if (snapshot.exists && mounted) {
-          // FIX: Safe type check — Firebase may return String instead of Map
-          final rawValue = snapshot.value;
-          if (rawValue is Map) {
-            final userData = Map<String, dynamic>.from(rawValue);
-            setState(() {
-              _studentName = userData['name'] ?? 'Student';
-              _studentClass = userData['department'] ?? '';
-              _studentAuid = auid;
-            });
-          } else {
-            // Data exists but isn't a Map — still show the AUID at minimum
-            setState(() {
-              _studentAuid = auid;
-            });
-          }
+        final user = await _userRepo.getUser(auid);
+        
+        if (user != null && mounted) {
+          setState(() {
+            _studentName = user.name.isNotEmpty ? user.name : 'Student';
+            _studentClass = user.department;
+            _studentAuid = auid;
+          });
         }
       }
     } catch (e) {
@@ -264,36 +255,36 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 size: 30,
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            AppSpacing.horizontalMd,
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'Hi! $_studentName',
-                                    style: TextStyle(
-                                      fontSize: 24,
+                                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       color: isDarkMode ? AppColors.textPrimaryDark : AppColors.primaryWhite,
+                                      fontSize: 24,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(height: 4),
+                                  AppSpacing.verticalXs,
                                   if (_studentClass.isNotEmpty)
                                     Text(
                                       _studentClass,
-                                      style: TextStyle(
-                                        fontSize: 13,
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                         color: isDarkMode ? AppColors.textSecondaryDark : AppColors.primaryWhite.withValues(alpha: 0.8),
+                                        fontSize: 13,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   if (_studentAuid.isNotEmpty)
                                     Text(
                                       _studentAuid,
-                                      style: TextStyle(
-                                        fontSize: 12,
+                                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                         color: isDarkMode ? AppColors.textMutedDark : AppColors.primaryWhite.withValues(alpha: 0.6),
+                                        fontSize: 12,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),

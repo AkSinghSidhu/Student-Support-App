@@ -25,6 +25,37 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: AppColors.surfaceLight,
       
+      // Text Theme
+      textTheme: const TextTheme(
+        headlineMedium: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimaryLight,
+          letterSpacing: 0.5,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimaryLight,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimaryLight,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textSecondaryLight,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textMutedLight,
+          letterSpacing: 1.2,
+        ),
+      ),
+      
       // AppBar Theme
       appBarTheme: const AppBarTheme(
         elevation: 0,
@@ -165,6 +196,37 @@ class AppTheme {
         onSurface: AppColors.primaryWhite,
       ),
       scaffoldBackgroundColor: AppColors.surfaceDark,
+
+      // Text Theme
+      textTheme: const TextTheme(
+        headlineMedium: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimaryDark,
+          letterSpacing: 0.5,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimaryDark,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimaryDark,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textSecondaryDark,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textMutedDark,
+          letterSpacing: 1.2,
+        ),
+      ),
 
       // AppBar Theme
       appBarTheme: const AppBarTheme(

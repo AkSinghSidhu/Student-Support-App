@@ -14,6 +14,9 @@ import '../../features/history/history_page.dart';
 class AppRoutes {
   AppRoutes._();
 
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
   // Route names
   static const String login = '/login';
   static const String home = '/home';

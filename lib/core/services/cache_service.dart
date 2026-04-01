@@ -43,23 +43,44 @@ class CacheService {
 
   /// Initialize Hive and open all necessary boxes
   static Future<void> initialize() async {
-    await Hive.initFlutter();
-    final cipher = await _getEncryptionCipher();
-    
-    await Future.wait([
-      Hive.openBox(_attendanceBox),
-      Hive.openBox(_noticesBox),
-      Hive.openBox(
-        _feedbackBox,
-        encryptionCipher: cipher,
-      ),
-      Hive.openBox(
-        _complaintsBox,
-        encryptionCipher: cipher,
-      ),
-      Hive.openBox(_syllabusBox),
-      Hive.openBox(_resourcesBox),
-    ]);
+    try {
+      await Hive.initFlutter();
+      final cipher = await _getEncryptionCipher();
+      
+      await Future.wait([
+        Hive.openBox(_attendanceBox),
+        Hive.openBox(_noticesBox),
+        Hive.openBox(
+          _feedbackBox,
+          encryptionCipher: cipher,
+        ),
+        Hive.openBox(
+          _complaintsBox,
+          encryptionCipher: cipher,
+        ),
+        Hive.openBox(_syllabusBox),
+        Hive.openBox(_resourcesBox),
+      ]);
+    } catch (e) {
+      developer.log(
+        'Hive init failed, clearing and retrying: $e',
+        name: 'CacheService',
+      );
+      // Clear corrupted boxes and retry without encryption
+      // This handles the case where boxes existed before
+      // encryption was added
+      await Hive.deleteBoxFromDisk(_feedbackBox);
+      await Hive.deleteBoxFromDisk(_complaintsBox);
+
+      await Future.wait([
+        Hive.openBox(_attendanceBox),
+        Hive.openBox(_noticesBox),
+        Hive.openBox(_feedbackBox),
+        Hive.openBox(_complaintsBox),
+        Hive.openBox(_syllabusBox),
+        Hive.openBox(_resourcesBox),
+      ]);
+    }
   }
 
   // --- Attendance Caching ---

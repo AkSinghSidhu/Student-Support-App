@@ -22,60 +22,85 @@ import 'shared/widgets/offline_banner.dart';
 import 'core/di/service_locator.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  FlutterError.onError = (FlutterErrorDetails details) {
-    developer.log(
-      'Flutter error: ${details.exception}',
-      name: 'GlobalErrorHandler',
-      error: details.exception,
-      stackTrace: details.stack,
+    FlutterError.onError = (FlutterErrorDetails details) {
+      developer.log(
+        'Flutter error: ${details.exception}',
+        name: 'GlobalErrorHandler',
+        error: details.exception,
+        stackTrace: details.stack,
+      );
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      developer.log(
+        'Platform error: $error',
+        name: 'GlobalErrorHandler',
+        error: error,
+        stackTrace: stack,
+      );
+      return true;
+    };
+
+    await Firebase.initializeApp();
+    
+    // Initialize offline cache
+    await CacheService.initialize();
+
+    // Open notifications Hive box
+    await Hive.openBox(AppConstants.notificationsBoxKey);
+    
+    // Dependency Injection Setup
+    await setupServiceLocator();
+    
+    // Initialize notification service (channels, permissions)
+    await sl<NotificationService>().initialize();
+    
+    // Initialize and start the background service for attendance monitoring
+    initializeBackgroundService();
+    
+    // Start listening for new notices and send notifications
+    await sl<NoticeService>().startListening();
+    
+    // Check if user is already logged in
+    final prefs = await SharedPreferences.getInstance();
+    final loggedInAuid = prefs.getString(AppConstants.auidKey);
+    final isLoggedIn = loggedInAuid != null && loggedInAuid.isNotEmpty;
+    final onboardingDone = prefs.getBool('onboarding_complete') ?? false;
+    
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ],
+        child: StudentSupportApp(isLoggedIn: isLoggedIn, onboardingDone: onboardingDone),
+      ),
     );
-  };
-  PlatformDispatcher.instance.onError = (error, stack) {
+  } catch (e, stack) {
     developer.log(
-      'Platform error: $error',
-      name: 'GlobalErrorHandler',
-      error: error,
+      'FATAL startup error: $e',
+      name: 'main',
+      error: e,
       stackTrace: stack,
     );
-    return true;
-  };
-
-  await Firebase.initializeApp();
-  
-  // Initialize offline cache
-  await CacheService.initialize();
-
-  // Open notifications Hive box
-  await Hive.openBox(AppConstants.notificationsBoxKey);
-  
-  // Dependency Injection Setup
-  await setupServiceLocator();
-  
-  // Initialize notification service (channels, permissions)
-  await sl<NotificationService>().initialize();
-  
-  // Initialize and start the background service for attendance monitoring
-  initializeBackgroundService();
-  
-  // Start listening for new notices and send notifications
-  await sl<NoticeService>().startListening();
-  
-  // Check if user is already logged in
-  final prefs = await SharedPreferences.getInstance();
-  final loggedInAuid = prefs.getString(AppConstants.auidKey);
-  final isLoggedIn = loggedInAuid != null && loggedInAuid.isNotEmpty;
-  final onboardingDone = prefs.getBool('onboarding_complete') ?? false;
-  
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-      ],
-      child: StudentSupportApp(isLoggedIn: isLoggedIn, onboardingDone: onboardingDone),
-    ),
-  );
+    // Still run the app even if init fails
+    // so user sees something instead of blank screen
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Text('Startup error — please reinstall'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 

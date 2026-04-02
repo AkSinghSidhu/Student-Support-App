@@ -1,3 +1,5 @@
+import '../core/app_constants.dart';
+
 class SubjectModel {
   final String code;
   final String name;
@@ -5,7 +7,7 @@ class SubjectModel {
   final int total;
 
   double get percent => total > 0 ? (attended / total * 100) : 0.0;
-  bool get isLow => percent < 75.0;
+  bool get isLow => percent < AppConstants.attendanceThreshold;
   String get percentFormatted => '${percent.toStringAsFixed(1)}%';
 
   const SubjectModel({

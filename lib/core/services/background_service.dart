@@ -47,7 +47,7 @@ void callbackDispatcher() {
         totalAttended += attended;
         totalClasses += total;
 
-        if (percent < 75.0) {
+        if (percent < AppConstants.attendanceThreshold) {
           final name = subject['name'] ?? key;
           lowSubjects.add('$name (${percent.toStringAsFixed(0)}%)');
         }
@@ -62,9 +62,9 @@ void callbackDispatcher() {
         String title;
         String body;
 
-        if (overall < 75.0) {
+        if (overall < AppConstants.attendanceThreshold) {
           title = '⚠️ Low Attendance Alert';
-          body = 'Overall: ${overall.toStringAsFixed(1)}%\n${lowSubjects.join(", ")} below 75%';
+          body = 'Overall: ${overall.toStringAsFixed(1)}%\n${lowSubjects.join(", ")} below ${AppConstants.attendanceThreshold.toInt()}%';
         } else {
           title = '📚 Subject Attendance Alert';
           body = 'Low attendance in: ${lowSubjects.join(", ")}';

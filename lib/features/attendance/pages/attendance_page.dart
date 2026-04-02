@@ -76,7 +76,7 @@ class _AttendancePageState extends State<AttendancePage> {
   }
 
   Color _getColor(double percent) {
-    if (percent >= 75) return AppColors.success;
+    if (percent >= AppConstants.attendanceThreshold) return AppColors.success;
     if (percent >= 65) return AppColors.warning;
     return AppColors.error;
   }
@@ -173,7 +173,7 @@ class _AttendancePageState extends State<AttendancePage> {
                       children: [
                         const Icon(Icons.warning_amber_rounded, color: AppColors.primaryWhite, size: 16),
                         AppSpacing.horizontalSm,
-                        Text('Below 75% threshold', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.primaryWhite)),
+                        Text('Below ${AppConstants.attendanceThreshold.toInt()}% threshold', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.primaryWhite)),
                       ],
                     ),
                   ),
@@ -225,8 +225,8 @@ class _AttendancePageState extends State<AttendancePage> {
                       AppSpacing.verticalXs,
                       Text(
                         lowSubjects.isNotEmpty
-                            ? '${lowSubjects.length} subject${lowSubjects.length > 1 ? "s" : ""} below 75%: ${lowSubjects.map((s) => s.name).join(", ")}'
-                            : 'All subjects are above 75% threshold',
+                            ? '${lowSubjects.length} subject${lowSubjects.length > 1 ? "s" : ""} below ${AppConstants.attendanceThreshold.toInt()}%: ${lowSubjects.map((s) => s.name).join(", ")}'
+                            : 'All subjects are above ${AppConstants.attendanceThreshold.toInt()}% threshold',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                       ),
                     ],

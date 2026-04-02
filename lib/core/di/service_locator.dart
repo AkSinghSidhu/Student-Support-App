@@ -3,6 +3,7 @@ import '../repositories/auth_repository.dart';
 import '../repositories/attendance_repository.dart';
 import '../repositories/user_repository.dart';
 import '../repositories/notice_repository.dart';
+import '../repositories/metadata_repository.dart';
 import '../services/notification_service.dart';
 import '../services/notice_service.dart';
 
@@ -20,6 +21,9 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerLazySingleton<NoticeRepository>(
     () => NoticeRepository(),
+  );
+  sl.registerLazySingleton<MetadataRepository>(
+    () => MetadataRepository(),
   );
   sl.registerLazySingleton<NotificationService>(
     () => NotificationService(),

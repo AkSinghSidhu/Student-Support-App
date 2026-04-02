@@ -11,6 +11,8 @@ import '../../../core/app_constants.dart';
 import '../../../core/queue_service.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../models/models.dart';
+import '../../../core/di/service_locator.dart';
+import '../../../core/repositories/metadata_repository.dart';
 
 /// Feedback submission page with form for user feedback.
 class FeedbackPage extends StatefulWidget {
@@ -42,35 +44,13 @@ class _FeedbackPageState extends State<FeedbackPage>
     'Other',
   ];
 
-  final Map<String, List<String>> _departmentTeachers = {
-    'Computer Science': [
-      'Dr. Alan Turing',
-      'Prof. Ada Lovelace',
-      'Dr. Grace Hopper',
-      'Prof. Donald Knuth',
-    ],
-    'Electronics': [
-      'Dr. Nikola Tesla',
-      'Prof. Heinrich Hertz',
-      'Dr. John Bardeen',
-      'Prof. Thomas Edison',
-    ],
-    'Mechanical': [
-      'Dr. Isaac Newton',
-      'Prof. James Watt',
-      'Dr. Rudolf Diesel',
-      'Prof. Nikolaus Otto',
-    ],
-    'Civil': [
-      'Dr. John Smeaton',
-      'Prof. Gustave Eiffel',
-      'Dr. Karl Terzaghi',
-    ],
-  };
+  Map<String, List<String>> _departmentTeachers = {};
+  bool _isLoadingTeachers = true;
 
   @override
   void initState() {
     super.initState();
+    _loadTeachers();
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -80,6 +60,17 @@ class _FeedbackPageState extends State<FeedbackPage>
       curve: Curves.easeOut,
     );
     _animController.forward();
+  }
+
+  Future<void> _loadTeachers() async {
+    final metadataRepo = sl<MetadataRepository>();
+    final teachers = await metadataRepo.getDepartmentTeachers();
+    if (mounted) {
+      setState(() {
+        _departmentTeachers = teachers;
+        _isLoadingTeachers = false;
+      });
+    }
   }
 
   @override
@@ -268,7 +259,7 @@ class _FeedbackPageState extends State<FeedbackPage>
         child: DropdownButton<String>(
           value: _selectedDepartment,
           hint: Text(
-            'Select Department',
+            _isLoadingTeachers ? 'Loading Departments...' : 'Select Department',
             style: TextStyle(
               fontSize: 14,
               color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -317,7 +308,7 @@ class _FeedbackPageState extends State<FeedbackPage>
         child: DropdownButton<String>(
           value: _selectedTeacher,
           hint: Text(
-            'Select Teacher',
+            _isLoadingTeachers ? 'Loading Teachers...' : 'Select Teacher',
             style: TextStyle(
               fontSize: 14,
               color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,

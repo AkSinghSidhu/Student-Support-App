@@ -40,6 +40,7 @@ class CacheService {
   static const String _complaintsBox = 'complaints_cache';
   static const String _syllabusBox = 'syllabus_cache';
   static const String _resourcesBox = 'resources_cache';
+  static const String _configBox = 'config_cache';
 
   /// Initialize Hive and open all necessary boxes
   static Future<void> initialize() async {
@@ -60,6 +61,7 @@ class CacheService {
         ),
         Hive.openBox(_syllabusBox),
         Hive.openBox(_resourcesBox),
+        Hive.openBox(_configBox),
       ]);
     } catch (e) {
       developer.log(
@@ -79,6 +81,7 @@ class CacheService {
         Hive.openBox(_complaintsBox),
         Hive.openBox(_syllabusBox),
         Hive.openBox(_resourcesBox),
+        Hive.openBox(_configBox),
       ]);
     }
   }
@@ -197,7 +200,33 @@ class CacheService {
     await Hive.box(_noticesBox).clear();
     await Hive.box(_feedbackBox).clear();
     await Hive.box(_complaintsBox).clear();
-    await Hive.box(_syllabusBox).clear();
     await Hive.box(_resourcesBox).clear();
+    await Hive.box(_configBox).clear();
+  }
+
+  // --- Configuration Caching ---
+
+  /// Cache the department and teachers mapping
+  static Future<void> cacheDepartmentTeachers(Map<String, List<String>> mapping) async {
+    final box = Hive.box(_configBox);
+    final String encoded = jsonEncode(mapping);
+    await box.put('department_teachers', encoded);
+  }
+
+  /// Retrieve the cached department and teachers mapping
+  static Map<String, List<String>>? getCachedDepartmentTeachers() {
+    try {
+      final box = Hive.box(_configBox);
+      final dataString = box.get('department_teachers');
+      if (dataString != null) {
+        final Map<String, dynamic> decoded = jsonDecode(dataString);
+        return decoded.map((key, value) {
+          return MapEntry(key, List<String>.from(value));
+        });
+      }
+    } catch (e) {
+      developer.log('CacheService Error getting dict: $e', name: 'CacheService');
+    }
+    return null;
   }
 }

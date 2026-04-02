@@ -83,4 +83,31 @@ class AppConstants {
   static const String searchBooks = 'Search books...';
   static const String searchNotes = 'Search notes...';
   static const String searchPyqs = 'Search PYQs...';
+
+  // Fallback Mappings
+  static const Map<String, List<String>> defaultDepartmentTeachers = {
+    'Computer Science': [
+      'Dr. Alan Turing',
+      'Prof. Ada Lovelace',
+      'Dr. Grace Hopper',
+      'Prof. Donald Knuth',
+    ],
+    'Electronics': [
+      'Dr. Nikola Tesla',
+      'Prof. Heinrich Hertz',
+      'Dr. John Bardeen',
+      'Prof. Thomas Edison',
+    ],
+    'Mechanical': [
+      'Dr. Isaac Newton',
+      'Prof. James Watt',
+      'Dr. Rudolf Diesel',
+      'Prof. Nikolaus Otto',
+    ],
+    'Civil': [
+      'Dr. John Smeaton',
+      'Prof. Gustave Eiffel',
+      'Dr. Karl Terzaghi',
+    ],
+  };
 }

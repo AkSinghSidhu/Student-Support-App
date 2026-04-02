@@ -5,6 +5,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/routes/app_routes.dart';
 
+import '../../core/app_constants.dart';
+
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
 
@@ -21,7 +23,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       'icon': Icons.school_outlined,
       'color': AppColors.primaryDarkBlue,
       'title': 'Track Your Attendance',
-      'body': 'Stay on top of every subject. Get alerts before you fall below 75%.',
+      'body': 'Stay on top of every subject. Get alerts before you fall below ${AppConstants.attendanceThreshold.toInt()}%.',
     },
     {
       'icon': Icons.notifications_active_outlined,

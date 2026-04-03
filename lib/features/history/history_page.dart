@@ -19,7 +19,7 @@ class HistoryPage extends StatefulWidget {
   State<HistoryPage> createState() => _HistoryPageState();
 }
 
-class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStateMixin {
+class _HistoryPageState extends State<HistoryPage> with TickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
   String? _auid;
@@ -144,12 +144,13 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          color: AppColors.primaryDarkBlue,
-          borderRadius: BorderRadius.circular(10),
+          color: isDarkMode ? AppColors.primaryGold : AppColors.primaryDarkBlue,
+          borderRadius: BorderRadius.circular(50),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
+        indicatorPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         labelPadding: EdgeInsets.zero,
-        labelColor: AppColors.primaryWhite,
+        labelColor: isDarkMode ? AppColors.primaryBlack : AppColors.primaryWhite,
         unselectedLabelColor: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
         labelStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w600,

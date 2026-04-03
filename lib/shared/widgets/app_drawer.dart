@@ -42,17 +42,15 @@ class _AppDrawerState extends State<AppDrawer> {
   Future<void> _loadAppVersion() async {
     try {
       final info = await PackageInfo.fromPlatform();
-      if (mounted) {
-        setState(() => _appVersion = info.version);
-      }
+      if (!mounted) return;
+      setState(() => _appVersion = 'v${info.version} (build ${info.buildNumber})');
     } catch (e) {
       developer.log(
         'Failed to load app version: $e',
         name: 'AppDrawer',
       );
-      if (mounted) {
-        setState(() => _appVersion = '0.1.0');
-      }
+      if (!mounted) return;
+      setState(() => _appVersion = 'v0.1.0 (build 1)');
     }
   }
 
@@ -221,7 +219,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   _buildSectionLabel('ACCOUNT', isDarkMode),
                   _buildTile(
                     icon: Icons.person_outline,
-                    iconColor: const Color(0xFF8B5CF6),
+                    iconColor: AppColors.primaryDarkBlue,
                     title: 'Profile',
                     subtitle: 'View your details',
                     isDarkMode: isDarkMode,
@@ -234,7 +232,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   ),
                   _buildTile(
                     icon: Icons.history,
-                    iconColor: const Color(0xFFF59E0B),
+                    iconColor: AppColors.warning,
                     title: 'My History',
                     subtitle: 'Complaints & feedback',
                     isDarkMode: isDarkMode,
@@ -245,7 +243,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   ),
                   _buildTile(
                     icon: Icons.lock_outline,
-                    iconColor: const Color(0xFF3B82F6),
+                    iconColor: AppColors.primaryGold,
                     title: 'Change Password',
                     subtitle: 'Coming soon',
                     isDarkMode: isDarkMode,
@@ -313,9 +311,9 @@ class _AppDrawerState extends State<AppDrawer> {
                   // About
                   _buildTile(
                     icon: Icons.info_outline,
-                    iconColor: const Color(0xFF6B7280),
+                    iconColor: AppColors.textMutedDark,
                     title: 'About',
-                    subtitle: 'Version $_appVersion',
+                    subtitle: _appVersion,
                     isDarkMode: isDarkMode,
                     onTap: () {
                       showDialog(
@@ -349,7 +347,7 @@ class _AppDrawerState extends State<AppDrawer> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Version $_appVersion',
+                                  _appVersion,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 13,
@@ -399,7 +397,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   // Privacy Policy
                   _buildTile(
                     icon: Icons.privacy_tip_outlined,
-                    iconColor: const Color(0xFF3B82F6),
+                    iconColor: AppColors.primaryDarkBlue,
                     title: 'Privacy Policy',
                     subtitle: 'Terms and conditions',
                     isDarkMode: isDarkMode,
@@ -423,11 +421,11 @@ class _AppDrawerState extends State<AppDrawer> {
           ),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            leading: const Icon(Icons.logout_rounded, color: Colors.red),
+            leading: const Icon(Icons.logout_rounded, color: AppColors.error),
             title: const Text(
               'Log Out',
               style: TextStyle(
-                color: Colors.red,
+                color: AppColors.error,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -458,7 +456,7 @@ class _AppDrawerState extends State<AppDrawer> {
                         child: const Text(
                           'Log Out',
                           style: TextStyle(
-                            color: Colors.red,
+                            color: AppColors.error,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -475,7 +473,7 @@ class _AppDrawerState extends State<AppDrawer> {
               padding: const EdgeInsets.only(bottom: AppSpacing.md, top: AppSpacing.sm),
               child: Center(
                 child: Text(
-                  'Version $_appVersion',
+                  _appVersion,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
                     letterSpacing: 0,
@@ -503,7 +501,7 @@ class _AppDrawerState extends State<AppDrawer> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primaryGold : Colors.transparent,
+            color: isSelected ? AppColors.primaryGold : AppColors.primaryWhite.withValues(alpha: 0),
             borderRadius: isSelected ? BorderRadius.circular(8) : BorderRadius.zero,
           ),
           alignment: Alignment.center,

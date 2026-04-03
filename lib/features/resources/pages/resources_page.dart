@@ -17,7 +17,7 @@ class ResourcesPage extends StatefulWidget {
 }
 
 class _ResourcesPageState extends State<ResourcesPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -165,12 +165,13 @@ class _ResourcesPageState extends State<ResourcesPage>
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          color: AppColors.primaryDarkBlue,
-          borderRadius: BorderRadius.circular(10),
+          color: isDarkMode ? AppColors.primaryGold : AppColors.primaryDarkBlue,
+          borderRadius: BorderRadius.circular(50),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
+        indicatorPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         labelPadding: EdgeInsets.zero,
-        labelColor: AppColors.primaryWhite,
+        labelColor: isDarkMode ? AppColors.primaryBlack : AppColors.primaryWhite,
         unselectedLabelColor: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
         labelStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w600,

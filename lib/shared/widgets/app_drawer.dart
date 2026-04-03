@@ -12,6 +12,7 @@ import '../../core/routes/app_routes.dart';
 import '../../core/services/cache_service.dart';
 import '../../core/services/background_service.dart';
 import '../../core/services/notice_service.dart';
+import '../../core/di/service_locator.dart';
 
 class AppDrawer extends StatefulWidget {
   final String studentName;
@@ -59,7 +60,7 @@ class _AppDrawerState extends State<AppDrawer> {
   Future<void> _handleLogout(BuildContext dialogContext) async {
     Navigator.pop(dialogContext);
 
-    NoticeService().stopListening();
+    sl<NoticeService>().stopListening();
     cancelAttendanceCheck();
 
     try {

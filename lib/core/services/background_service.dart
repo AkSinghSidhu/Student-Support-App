@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:student_support_app/core/services/notification_service.dart';
 import 'package:student_support_app/core/app_constants.dart';
 import 'package:student_support_app/core/services/notification_store.dart';
+import 'package:student_support_app/core/di/service_locator.dart';
 
 const String attendanceTask = "checkAttendanceTask";
 
@@ -17,6 +18,9 @@ const String attendanceTask = "checkAttendanceTask";
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
+      // Must set up DI inside this isolate since it does not share memory with the main app
+      await setupServiceLocator();
+
       final prefs = await SharedPreferences.getInstance();
       final auid = prefs.getString(AppConstants.auidKey);
       
@@ -57,7 +61,7 @@ void callbackDispatcher() {
 
       if (lowSubjects.isNotEmpty) {
         // Initialize NotificationService since this is a new isolate
-        await NotificationService().initialize();
+        await sl<NotificationService>().initialize();
 
         String title;
         String body;
@@ -70,7 +74,7 @@ void callbackDispatcher() {
           body = 'Low attendance in: ${lowSubjects.join(", ")}';
         }
 
-        await NotificationService().showNotification(title: title, body: body);
+        await sl<NotificationService>().showNotification(title: title, body: body);
 
         // Store in-app notification
         await NotificationStore.addNotification(

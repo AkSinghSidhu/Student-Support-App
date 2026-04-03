@@ -7,6 +7,7 @@ import '../core/theme/theme_provider.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/repositories/auth_repository.dart';
+import '../core/di/service_locator.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -80,7 +81,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     }
   }
 
-  final _authRepo = AuthRepository();
+  final _authRepo = sl<AuthRepository>();
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {

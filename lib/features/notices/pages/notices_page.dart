@@ -7,6 +7,7 @@ import '../../../core/services/notice_service.dart';
 import '../../../core/services/cache_service.dart';
 import '../../../shared/widgets/search_bar_widget.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
+import '../../../core/di/service_locator.dart';
 
 /// Notices page with announcements list and filters.
 class NoticesPage extends StatefulWidget {
@@ -29,7 +30,7 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _noticesStream = NoticeService().noticesStream();
+    _noticesStream = sl<NoticeService>().noticesStream();
     _listController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),

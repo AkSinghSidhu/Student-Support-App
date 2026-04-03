@@ -9,6 +9,7 @@ import '../../../core/app_constants.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
 import '../../../core/repositories/attendance_repository.dart';
 import '../../../models/models.dart';
+import '../../../core/di/service_locator.dart';
 
 /// Attendance page with summary and push notification alerts.
 class AttendancePage extends StatefulWidget {
@@ -25,7 +26,7 @@ class _AttendancePageState extends State<AttendancePage> {
   String? _errorMessage;
 
   List<SubjectModel> _subjects = [];
-  final _repo = AttendanceRepository();
+  final _repo = sl<AttendanceRepository>();
 
   @override
   void initState() {

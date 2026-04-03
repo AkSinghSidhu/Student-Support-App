@@ -13,6 +13,7 @@ import '../../../core/services/notification_store.dart';
 import '../../notifications/notifications_page.dart';
 import '../../../models/feature_data.dart';
 import '../../../core/repositories/user_repository.dart';
+import '../../../core/di/service_locator.dart';
 
 /// Home page with animated feature grid after login.
 class HomePage extends StatefulWidget {
@@ -123,7 +124,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
   }
 
-  final _userRepo = UserRepository();
+  final _userRepo = sl<UserRepository>();
 
   Future<void> _loadStudentData() async {
     try {

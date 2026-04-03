@@ -8,6 +8,7 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/repositories/auth_repository.dart';
 import '../core/di/service_locator.dart';
+import '../core/routes/app_routes.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -100,9 +101,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           if (!mounted) return;
           setState(() => _isLoading = false);
 
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/home');
-          }
+          if (!mounted) return;
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.home,
+            (route) => false,
+          );
         } else {
           if (!mounted) return;
           setState(() => _isLoading = false);

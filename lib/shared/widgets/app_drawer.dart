@@ -78,9 +78,12 @@ class _AppDrawerState extends State<AppDrawer> {
       developer.log('Logout cleanup error: $e', name: 'AppDrawer');
     }
 
-    if (mounted) {
-      AppRoutes.navigateClearStack(context, AppRoutes.login);
-    }
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════

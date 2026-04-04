@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'core/app_constants.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/theme_provider.dart';
 
 import 'core/routes/app_routes.dart';
@@ -140,40 +141,57 @@ class _StudentSupportAppState extends State<StudentSupportApp> {
         });
       }
 
-      // If connected to mobile or wifi
-      if (results.contains(ConnectivityResult.mobile) || results.contains(ConnectivityResult.wifi)) {
-        final pendingItems = await QueueService.getPendingItems();
-        
-        if (pendingItems.isNotEmpty && !_isSyncing) {
-          _isSyncing = true;
-          
-          _scaffoldMessengerKey.currentState?.showSnackBar(
-            const SnackBar(
-              content: Text('Sending your saved drafts...'),
-              backgroundColor: Colors.blue,
-              duration: Duration(seconds: 2),
-            ),
-          );
-          
-          await QueueService.retryAll();
+      // Guard 1: If offline, return silently
+      final isOnline = results.contains(ConnectivityResult.mobile) || results.contains(ConnectivityResult.wifi);
+      if (!isOnline) return;
 
-          // Store in-app notification for draft sync
+      // Guard 2: If already syncing, skip
+      if (_isSyncing) return;
+
+      // Guard 3: If queue is empty, return silently — no snackbar, no noise
+      final pendingItems = await QueueService.getPendingItems();
+      if (pendingItems.isEmpty) return;
+
+      _isSyncing = true;
+
+      try {
+        final result = await QueueService.retryAll();
+
+        // Only show messages if something actually happened
+        if (result.sentCount > 0) {
           await NotificationStore.addNotification(
             title: 'Drafts Sent',
-            body: 'Your saved drafts were submitted successfully',
+            body: '${result.sentCount} draft${result.sentCount == 1 ? '' : 's'} submitted successfully',
             type: 'draft',
           );
-          
+
           _scaffoldMessengerKey.currentState?.showSnackBar(
-            const SnackBar(
-              content: Text('All drafts sent successfully!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
+            SnackBar(
+              content: Text('${result.sentCount} draft${result.sentCount == 1 ? '' : 's'} sent successfully!'),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 3),
             ),
           );
-          
-          _isSyncing = false;
         }
+
+        if (result.expiredCount > 0) {
+          // Small delay so both snackbars show sequentially
+          if (result.sentCount > 0) {
+            await Future.delayed(const Duration(seconds: 2));
+          }
+
+          _scaffoldMessengerKey.currentState?.showSnackBar(
+            SnackBar(
+              content: Text('${result.expiredCount} expired draft${result.expiredCount == 1 ? ' was' : 's were'} removed'),
+              backgroundColor: AppColors.warning,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } catch (e) {
+        developer.log('Draft sync error: $e', name: 'main');
+      } finally {
+        _isSyncing = false;
       }
     });
   }

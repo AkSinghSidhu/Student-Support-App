@@ -5,6 +5,23 @@ import 'app_constants.dart';
 import 'database_service.dart';
 import '../models/models.dart';
 
+/// Result object returned by [QueueService.retryAll] so callers know
+/// exactly what happened during the retry sweep.
+class QueueRetryResult {
+  final int sentCount;
+  final int expiredCount;
+  final int failedCount;
+
+  const QueueRetryResult({
+    this.sentCount = 0,
+    this.expiredCount = 0,
+    this.failedCount = 0,
+  });
+
+  /// True when at least one item was sent or expired (i.e. something changed).
+  bool get hasActivity => sentCount > 0 || expiredCount > 0;
+}
+
 class QueueService {
 
   /// Save a new pending item to the queue
@@ -67,36 +84,56 @@ class QueueService {
     }
   }
 
-  /// Loop through all pending items and try to send them to Firebase
-  static Future<void> retryAll() async {
-    final List<QueueItemModel> queue = await getPendingItems();
-    
-    if (queue.isEmpty) return;
+  /// Loop through all pending items and try to send them to Firebase.
+  /// Returns a [QueueRetryResult] with counts of sent, expired, and failed items.
+  static Future<QueueRetryResult> retryAll() async {
+    int sentCount = 0;
+    int expiredCount = 0;
+    int failedCount = 0;
 
-    final database = DatabaseService.db;
-
-    for (final item in queue) {
-      if (item.isExpired) {
-        developer.log('Removing expired queue item: ${item.localId}', name: 'QueueService');
-        await removeFromQueue(item.localId);
-        continue;
+    try {
+      final List<QueueItemModel> queue = await getPendingItems();
+      
+      if (queue.isEmpty) {
+        return const QueueRetryResult();
       }
 
-      try {
-        if (item.type == 'complaint' || item.type == 'complaints') {
-          final ref = database.child('complaints').child(item.auid).push();
-          await ref.set(item.data);
-        } else if (item.type == 'feedback') {
-          final ref = database.child('feedback').child(item.auid).push();
-          await ref.set(item.data);
+      final database = DatabaseService.db;
+
+      for (final item in queue) {
+        if (item.isExpired) {
+          developer.log('Removing expired queue item: ${item.localId}', name: 'QueueService');
+          await removeFromQueue(item.localId);
+          expiredCount++;
+          continue;
         }
-        
-        // If set() succeeds, it's sent. Remove it from local queue.
-        await removeFromQueue(item.localId);
-      } catch (e) {
-        // If it fails, keep it in the queue for the next retry
-        developer.log('QueueService Error sending ${item.type} ${item.localId}: $e', name: 'QueueService');
+
+        try {
+          if (item.type == 'complaint' || item.type == 'complaints') {
+            final ref = database.child('complaints').child(item.auid).push();
+            await ref.set(item.data);
+          } else if (item.type == 'feedback') {
+            final ref = database.child('feedback').child(item.auid).push();
+            await ref.set(item.data);
+          }
+          
+          // If set() succeeds, it's sent. Remove it from local queue.
+          await removeFromQueue(item.localId);
+          sentCount++;
+        } catch (e) {
+          // If it fails, keep it in the queue for the next retry
+          developer.log('QueueService Error sending ${item.type} ${item.localId}: $e', name: 'QueueService');
+          failedCount++;
+        }
       }
+    } catch (e) {
+      developer.log('QueueService retryAll fatal error: $e', name: 'QueueService');
     }
+
+    return QueueRetryResult(
+      sentCount: sentCount,
+      expiredCount: expiredCount,
+      failedCount: failedCount,
+    );
   }
 }

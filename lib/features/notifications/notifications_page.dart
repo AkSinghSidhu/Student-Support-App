@@ -173,12 +173,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isRead
-              ? Colors.transparent
+              ? AppColors.transparent
               : iconColor.withValues(alpha: 0.2),
         ),
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: () async {
             final id = item['id'] as String? ?? '';

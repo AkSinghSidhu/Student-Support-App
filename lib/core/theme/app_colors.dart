@@ -10,6 +10,7 @@ class AppColors {
   static const Color primaryBlack = Color(0xFF000000);
   static const Color primaryWhite = Color(0xFFFFFFFF);
   static const Color primaryGold = Color(0xFFFDC50C);
+  static const Color transparent = Color(0x00000000);
 
   // Gradient Colors
   static const Color gradientStart = primaryDarkBlue;

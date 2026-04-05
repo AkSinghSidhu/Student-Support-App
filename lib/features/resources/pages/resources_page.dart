@@ -116,8 +116,8 @@ class _ResourcesPageState extends State<ResourcesPage>
             // Tab bar
             _buildTabBar(context, isDarkMode),
             // Search bars mapped to tabs
-            AnimatedBuilder(
-              animation: _tabController,
+            ListenableBuilder(
+              listenable: _tabController,
               builder: (context, _) {
                 final index = _tabController.index;
                 return SearchBarWidget(
@@ -176,7 +176,7 @@ class _ResourcesPageState extends State<ResourcesPage>
         labelStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w600,
         ),
-        dividerColor: Colors.transparent,
+        dividerColor: AppColors.transparent,
         tabs: const [
           Tab(text: 'Books'),
           Tab(text: 'Notes'),
@@ -252,7 +252,7 @@ class _ResourcesPageState extends State<ResourcesPage>
         ],
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: () {
             ScaffoldMessenger.of(context).showSnackBar(

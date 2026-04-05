@@ -108,7 +108,7 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
                     alignment: Alignment.center,
                     child: Text(_filters[i], style: TextStyle(
                       fontSize: 13, fontWeight: FontWeight.w500,
-                      color: isActive ? Colors.white : (isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                      color: isActive ? AppColors.primaryWhite : (isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                     )),
                   ),
                 );

@@ -155,7 +155,7 @@ class _HistoryPageState extends State<HistoryPage> with TickerProviderStateMixin
         labelStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w600,
         ),
-        dividerColor: Colors.transparent,
+        dividerColor: AppColors.transparent,
         tabs: const [
           Tab(text: AppConstants.tabComplaints),
           Tab(text: AppConstants.tabFeedback),
@@ -188,7 +188,7 @@ class _HistoryPageState extends State<HistoryPage> with TickerProviderStateMixin
         ],
       ),
       child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        data: Theme.of(context).copyWith(dividerColor: AppColors.transparent),
         child: ExpansionTile(
           shape: const Border(),
           collapsedShape: const Border(),

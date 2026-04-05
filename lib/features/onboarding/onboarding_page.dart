@@ -168,7 +168,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           onPressed: _completeOnboarding,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryDarkBlue,
-                            foregroundColor: Colors.white,
+                            foregroundColor: AppColors.primaryWhite,
                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -191,7 +191,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 curve: Curves.easeInOut,
                               );
                             },
-                            icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                            icon: const Icon(Icons.arrow_forward, color: AppColors.primaryWhite),
                           ),
                         ),
                 ],

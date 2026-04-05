@@ -163,7 +163,7 @@ class _SyllabusPageState extends State<SyllabusPage>
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppColors.syllabusColor
-                      : Colors.transparent,
+                      : AppColors.transparent,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -219,7 +219,7 @@ class _SyllabusPageState extends State<SyllabusPage>
             border: Border.all(
               color: isExpanded
                   ? AppColors.syllabusColor.withValues(alpha: 0.5)
-                  : Colors.transparent,
+                  : AppColors.transparent,
             ),
             boxShadow: [
               BoxShadow(
@@ -230,7 +230,7 @@ class _SyllabusPageState extends State<SyllabusPage>
             ],
           ),
           child: Material(
-            color: Colors.transparent,
+            color: AppColors.transparent,
             child: InkWell(
               onTap: () {
                 setState(() {

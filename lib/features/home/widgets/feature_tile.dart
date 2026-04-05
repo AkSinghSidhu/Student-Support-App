@@ -92,7 +92,7 @@ class _FeatureTileState extends State<FeatureTile>
               BoxShadow(
                 color: _isPressed
                     ? widget.color.withValues(alpha: 0.2)
-                    : (isDarkMode ? Colors.transparent : AppColors.primaryBlack.withValues(alpha: 0.08)),
+                    : (isDarkMode ? AppColors.transparent : AppColors.primaryBlack.withValues(alpha: 0.08)),
                 blurRadius: _isPressed ? 16 : 20,
                 offset: Offset(0, _isPressed ? 4 : 8),
                 spreadRadius: _isPressed ? 0 : 0,

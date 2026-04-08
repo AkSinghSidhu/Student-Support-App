@@ -34,20 +34,22 @@ jobs:
           # Auto-increment build number from total commit count
           COMMIT_COUNT=$(git rev-list --count HEAD)
           VERSION_CODE=$COMMIT_COUNT
-          TAG="v$VERSION_NAME"
+          
+          # Include build number in tag so every commit gets a unique release
+          TAG="v$VERSION_NAME-b$VERSION_CODE"
           
           if git ls-remote --tags origin "refs/tags/$TAG" | grep -q "$TAG"; then
             echo "Tag $TAG already exists. Skipping build and release."
             echo "should_release=false" >> $GITHUB_OUTPUT
           else
-            echo "New version detected. Will build and release $TAG."
+            echo "New commit detected. Will build and release $TAG."
             echo "should_release=true" >> $GITHUB_OUTPUT
           fi
           
           echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "apk_name=StudentSupportApp-v$VERSION_NAME.apk" >> $GITHUB_OUTPUT
+          echo "apk_name=StudentSupportApp-v$VERSION_NAME-b$VERSION_CODE.apk" >> $GITHUB_OUTPUT
           
           echo "--- Version Info ---"
           echo "Semver: $VERSION_NAME"
@@ -190,9 +192,9 @@ jobs:
         uses: softprops/action-gh-release@v2.2.1
         with:
           tag_name: ${{ needs.check-version.outputs.tag }}
-          name: "Student Support App v${{ needs.check-version.outputs.version_name }}"
+          name: "Student Support App v${{ needs.check-version.outputs.version_name }} (Build ${{ needs.check-version.outputs.version_code }})"
           body: |
-            ## Student Support App v${{ needs.check-version.outputs.version_name }}
+            ## Student Support App v${{ needs.check-version.outputs.version_name }} (Build ${{ needs.check-version.outputs.version_code }})
 
             **Build Number:** ${{ needs.check-version.outputs.version_code }}
             **Commit SHA:** ${{ github.sha }}

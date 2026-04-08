@@ -72,6 +72,7 @@ class _ComplaintPageState extends State<ComplaintPage>
 
 
   Future<void> _submitComplaint() async {
+    HapticFeedback.lightImpact();
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
       
@@ -107,7 +108,7 @@ class _ComplaintPageState extends State<ComplaintPage>
         
         scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: const Text('Complaint submitted optimally!'),
+            content: const Text('Complaint submitted successfully!'),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -279,7 +280,10 @@ class _ComplaintPageState extends State<ComplaintPage>
       children: _types.map((type) {
         final isSelected = _selectedType == type;
         return GestureDetector(
-          onTap: () => setState(() => _selectedType = type),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            setState(() => _selectedType = type);
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -316,7 +320,10 @@ class _ComplaintPageState extends State<ComplaintPage>
         final isSelected = _urgency == level['label'];
         return Expanded(
           child: GestureDetector(
-            onTap: () => setState(() => _urgency = level['label']),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              setState(() => _urgency = level['label']);
+            },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               margin: EdgeInsets.only(

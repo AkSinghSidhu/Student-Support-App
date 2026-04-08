@@ -83,6 +83,7 @@ class _FeedbackPageState extends State<FeedbackPage>
 
 
   Future<void> _submitFeedback() async {
+    HapticFeedback.lightImpact();
     if (_formKey.currentState!.validate() && _rating > 0) {
       if (_selectedDepartment == null) {
         _showError('Please select a department');
@@ -125,7 +126,7 @@ class _FeedbackPageState extends State<FeedbackPage>
         
         scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: const Text('Feedback submitted optimally!'),
+            content: const Text('Feedback submitted successfully!'),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -416,7 +417,10 @@ class _FeedbackPageState extends State<FeedbackPage>
       children: _categories.map((category) {
         final isSelected = _selectedCategory == category;
         return GestureDetector(
-          onTap: () => setState(() => _selectedCategory = category),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            setState(() => _selectedCategory = category);
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -453,7 +457,10 @@ class _FeedbackPageState extends State<FeedbackPage>
       children: List.generate(5, (index) {
         final isSelected = index < _rating;
         return GestureDetector(
-          onTap: () => setState(() => _rating = index + 1),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            setState(() => _rating = index + 1);
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             margin: const EdgeInsets.only(right: 8),

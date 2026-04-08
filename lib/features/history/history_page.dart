@@ -7,6 +7,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/database_service.dart';
+import '../../core/queue_service.dart';
+import '../../models/models.dart';
 import '../../shared/widgets/custom_app_bar.dart';
 import '../../shared/widgets/shimmer_loader.dart';
 import '../../shared/widgets/loading_overlay.dart';
@@ -25,6 +27,7 @@ class _HistoryPageState extends State<HistoryPage> with TickerProviderStateMixin
   String? _auid;
   List<Map<String, dynamic>> _complaints = [];
   List<Map<String, dynamic>> _feedback = [];
+  List<QueueItemModel> _pendingDrafts = [];
 
   @override
   void initState() {
@@ -86,10 +89,13 @@ class _HistoryPageState extends State<HistoryPage> with TickerProviderStateMixin
       loadedComplaints.sort((a, b) => (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? ''));
       loadedFeedback.sort((a, b) => (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? ''));
 
+      final pendingItems = await QueueService.getPendingItems();
+
       if (mounted) {
         setState(() {
           _complaints = loadedComplaints;
           _feedback = loadedFeedback;
+          _pendingDrafts = pendingItems.where((item) => item.auid == _auid).toList();
           _isLoading = false;
         });
       }
@@ -288,17 +294,64 @@ class _HistoryPageState extends State<HistoryPage> with TickerProviderStateMixin
     );
   }
 
+  Widget _buildPendingDraftsIndicator(bool isDarkMode) {
+    if (_pendingDrafts.isEmpty) return const SizedBox.shrink();
+    
+    final int count = _pendingDrafts.length;
+    final String text = count == 1 
+        ? '1 pending offline draft waiting to sync.' 
+        : '$count pending offline drafts waiting to sync.';
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_off_rounded, color: AppColors.warning, size: 20),
+          AppSpacing.horizontalSm,
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildList(List<Map<String, dynamic>> items, bool isComplaint, bool isDarkMode) {
     if (items.isEmpty) {
-      return EmptyState(
-        icon: isComplaint ? Icons.report_problem_outlined : Icons.feedback_outlined,
-        title: isComplaint ? 'No complaints found' : 'No feedback found',
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            children: [
+              Container(
+                height: constraints.maxHeight,
+                alignment: Alignment.center,
+                child: EmptyState(
+                  icon: isComplaint ? Icons.report_problem_outlined : Icons.feedback_outlined,
+                  title: isComplaint ? 'No complaints found' : 'No feedback found',
+                ),
+              ),
+            ],
+          );
+        },
       );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-      physics: const BouncingScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       itemCount: items.length,
       itemBuilder: (context, index) {
         return _buildHistoryItem(context, items[index], isComplaint, isDarkMode);
@@ -316,6 +369,7 @@ class _HistoryPageState extends State<HistoryPage> with TickerProviderStateMixin
       body: Column(
         children: [
           _buildTabBar(context, isDarkMode),
+          _buildPendingDraftsIndicator(isDarkMode),
           Expanded(
             child: _isLoading
                 ? ShimmerLoader(
@@ -330,8 +384,16 @@ class _HistoryPageState extends State<HistoryPage> with TickerProviderStateMixin
                     controller: _tabController,
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      _buildList(_complaints, true, isDarkMode),
-                      _buildList(_feedback, false, isDarkMode),
+                      RefreshIndicator(
+                        onRefresh: _loadHistory,
+                        color: AppColors.primaryDarkBlue,
+                        child: _buildList(_complaints, true, isDarkMode),
+                      ),
+                      RefreshIndicator(
+                        onRefresh: _loadHistory,
+                        color: AppColors.primaryDarkBlue,
+                        child: _buildList(_feedback, false, isDarkMode),
+                      ),
                     ],
                   ),
           ),

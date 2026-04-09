@@ -1,12 +1,25 @@
 import 'dart:developer' as developer;
+import '../di/service_locator.dart';
 import '../database_service.dart';
 import '../services/cache_service.dart';
 import '../../models/models.dart';
 
-class AttendanceRepository {
+abstract class IAttendanceRepository {
+  Future<List<SubjectModel>> getSubjects(String auid);
+}
+
+class AttendanceRepository implements IAttendanceRepository {
+  final DatabaseService _dbService;
+  final CacheService _cacheService;
+
+  AttendanceRepository({DatabaseService? dbService, CacheService? cacheService})
+      : _dbService = dbService ?? sl<DatabaseService>(),
+        _cacheService = cacheService ?? sl<CacheService>();
+
+  @override
   Future<List<SubjectModel>> getSubjects(String auid) async {
     // Try cache first
-    final cached = CacheService.getAttendance(auid);
+    final cached = _cacheService.getAttendance(auid);
     if (cached != null) {
       try {
         return cached.entries
@@ -26,7 +39,7 @@ class AttendanceRepository {
 
     // Fetch from Firebase
     try {
-      final snapshot = await DatabaseService.db
+      final snapshot = await _dbService.db
           .child('attendance')
           .child(auid)
           .child('subjects')
@@ -38,7 +51,7 @@ class AttendanceRepository {
       if (raw is! Map) return [];
 
       final data = Map<String, dynamic>.from(raw);
-      await CacheService.cacheAttendance(auid, data);
+      await _cacheService.cacheAttendance(auid, data);
 
       return data.entries
           .where((e) => e.value is Map)

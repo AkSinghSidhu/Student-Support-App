@@ -11,10 +11,10 @@ import '../widgets/feature_tile.dart';
 import '../../../core/app_constants.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../core/services/notification_store.dart';
+import '../../../core/di/service_locator.dart';
 import '../../notifications/notifications_page.dart';
 import '../../../models/feature_data.dart';
 import '../../../core/repositories/user_repository.dart';
-import '../../../core/di/service_locator.dart';
 
 /// Home page with animated feature grid after login.
 class HomePage extends StatefulWidget {
@@ -150,7 +150,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Future<void> _refreshUnreadCount() async {
-    final count = await NotificationStore.getUnreadCount();
+    final count = await sl<NotificationStore>().getUnreadCount();
     if (mounted) {
       setState(() {
         _unreadCount = count;

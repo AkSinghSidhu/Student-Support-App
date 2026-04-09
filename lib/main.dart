@@ -20,11 +20,13 @@ import 'core/queue_service.dart';
 import 'core/services/notification_store.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'shared/widgets/offline_banner.dart';
+import 'shared/widgets/error_boundary.dart';
 import 'core/di/service_locator.dart';
 
 void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
+    setupErrorBoundary();
 
     FlutterError.onError = (FlutterErrorDetails details) {
       developer.log(
@@ -149,17 +151,17 @@ class _StudentSupportAppState extends State<StudentSupportApp> {
       if (_isSyncing) return;
 
       // Guard 3: If queue is empty, return silently — no snackbar, no noise
-      final pendingItems = await QueueService.getPendingItems();
+      final pendingItems = await sl<QueueService>().getPendingItems();
       if (pendingItems.isEmpty) return;
 
       _isSyncing = true;
 
       try {
-        final result = await QueueService.retryAll();
+        final result = await sl<QueueService>().retryAll();
 
         // Only show messages if something actually happened
         if (result.sentCount > 0) {
-          await NotificationStore.addNotification(
+          await sl<NotificationStore>().addNotification(
             title: 'Drafts Sent',
             body: '${result.sentCount} draft${result.sentCount == 1 ? '' : 's'} submitted successfully',
             type: 'draft',

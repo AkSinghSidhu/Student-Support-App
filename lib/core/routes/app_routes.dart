@@ -9,6 +9,7 @@ import '../../features/attendance/pages/attendance_page.dart';
 import '../../features/notices/pages/notices_page.dart';
 import '../../features/onboarding/onboarding_page.dart';
 import '../../features/history/history_page.dart';
+import '../../shared/widgets/error_boundary.dart';
 
 /// Named route definitions and route generator for clean navigation.
 class AppRoutes {
@@ -64,7 +65,7 @@ class AppRoutes {
   ) {
     return PageRouteBuilder(
       settings: settings,
-      pageBuilder: (context, animation, secondaryAnimation) => page,
+      pageBuilder: (context, animation, secondaryAnimation) => ErrorBoundary(child: page),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(1.0, 0.0);
         const end = Offset.zero;

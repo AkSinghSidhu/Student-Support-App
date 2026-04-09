@@ -2,12 +2,26 @@ import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database_service.dart';
 import '../app_constants.dart';
+import '../di/service_locator.dart';
 import '../../models/models.dart';
 
-class AuthRepository {
+abstract class IAuthRepository {
+  Future<UserModel?> login(String auid, String password);
+  Future<void> logout();
+  Future<bool> isLoggedIn();
+  Future<String?> getCurrentAuid();
+}
+
+class AuthRepository implements IAuthRepository {
+  final DatabaseService _dbService;
+
+  AuthRepository({DatabaseService? dbService})
+      : _dbService = dbService ?? sl<DatabaseService>();
+
+  @override
   Future<UserModel?> login(String auid, String password) async {
     try {
-      final snapshot = await DatabaseService.db
+      final snapshot = await _dbService.db
           .child('users')
           .child(auid)
           .get();
@@ -31,6 +45,7 @@ class AuthRepository {
     }
   }
 
+  @override
   Future<void> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -41,6 +56,7 @@ class AuthRepository {
     }
   }
 
+  @override
   Future<bool> isLoggedIn() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -52,6 +68,7 @@ class AuthRepository {
     }
   }
 
+  @override
   Future<String?> getCurrentAuid() async {
     try {
       final prefs = await SharedPreferences.getInstance();

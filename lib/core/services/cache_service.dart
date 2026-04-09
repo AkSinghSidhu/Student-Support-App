@@ -89,13 +89,13 @@ class CacheService {
   // --- Attendance Caching ---
   
   /// Cache attendance data for a specific user
-  static Future<void> cacheAttendance(String auid, Map<String, dynamic> data) async {
+  Future<void> cacheAttendance(String auid, Map<String, dynamic> data) async {
     final box = Hive.box(_attendanceBox);
     await box.put(auid, jsonEncode(data));
   }
   
   /// Get cached attendance data for a specific user
-  static Map<String, dynamic>? getAttendance(String auid) {
+  Map<String, dynamic>? getAttendance(String auid) {
     try {
       final box = Hive.box(_attendanceBox);
       final dataString = box.get(auid);
@@ -111,14 +111,14 @@ class CacheService {
   // --- Notices Caching ---
   
   /// Cache a list of notices
-  static Future<void> cacheNotices(List<Map<String, dynamic>> notices) async {
+  Future<void> cacheNotices(List<Map<String, dynamic>> notices) async {
     final box = Hive.box(_noticesBox);
     final String encoded = jsonEncode(notices);
     await box.put('all_notices', encoded);
   }
   
   /// Get cached notices
-  static List<Map<String, dynamic>>? getNotices() {
+  List<Map<String, dynamic>>? getNotices() {
     try {
       final box = Hive.box(_noticesBox);
       final dataString = box.get('all_notices');
@@ -135,7 +135,7 @@ class CacheService {
   // --- Feedback Caching ---
   
   /// Cache a single feedback submission to sync later
-  static Future<void> cachePendingFeedback(Map<String, dynamic> feedback) async {
+  Future<void> cachePendingFeedback(Map<String, dynamic> feedback) async {
     final box = Hive.box(_feedbackBox);
     final pending = getPendingFeedback();
     pending.add(feedback);
@@ -143,7 +143,7 @@ class CacheService {
   }
   
   /// Get all pending feedback submissions
-  static List<Map<String, dynamic>> getPendingFeedback() {
+  List<Map<String, dynamic>> getPendingFeedback() {
     try {
       final box = Hive.box(_feedbackBox);
       final dataString = box.get('pending_feedback');
@@ -158,7 +158,7 @@ class CacheService {
   }
   
   /// Clear pending feedback after successful sync
-  static Future<void> clearPendingFeedback() async {
+  Future<void> clearPendingFeedback() async {
     final box = Hive.box(_feedbackBox);
     await box.delete('pending_feedback');
   }
@@ -166,7 +166,7 @@ class CacheService {
   // --- Complaints Caching ---
   
   /// Cache a single complaint submission to sync later
-  static Future<void> cachePendingComplaint(Map<String, dynamic> complaint) async {
+  Future<void> cachePendingComplaint(Map<String, dynamic> complaint) async {
     final box = Hive.box(_complaintsBox);
     final pending = getPendingComplaints();
     pending.add(complaint);
@@ -174,7 +174,7 @@ class CacheService {
   }
   
   /// Get all pending complaint submissions
-  static List<Map<String, dynamic>> getPendingComplaints() {
+  List<Map<String, dynamic>> getPendingComplaints() {
     try {
       final box = Hive.box(_complaintsBox);
       final dataString = box.get('pending_complaints');
@@ -189,13 +189,13 @@ class CacheService {
   }
   
   /// Clear pending complaints after successful sync
-  static Future<void> clearPendingComplaints() async {
+  Future<void> clearPendingComplaints() async {
     final box = Hive.box(_complaintsBox);
     await box.delete('pending_complaints');
   }
 
   // General clear all cache (e.g. on logout)
-  static Future<void> clearAllUserCache() async {
+  Future<void> clearAllUserCache() async {
     await Hive.box(_attendanceBox).clear();
     await Hive.box(_noticesBox).clear();
     await Hive.box(_feedbackBox).clear();
@@ -207,14 +207,14 @@ class CacheService {
   // --- Configuration Caching ---
 
   /// Cache the department and teachers mapping
-  static Future<void> cacheDepartmentTeachers(Map<String, List<String>> mapping) async {
+  Future<void> cacheDepartmentTeachers(Map<String, List<String>> mapping) async {
     final box = Hive.box(_configBox);
     final String encoded = jsonEncode(mapping);
     await box.put('department_teachers', encoded);
   }
 
   /// Retrieve the cached department and teachers mapping
-  static Map<String, List<String>>? getCachedDepartmentTeachers() {
+  Map<String, List<String>>? getCachedDepartmentTeachers() {
     try {
       final box = Hive.box(_configBox);
       final dataString = box.get('department_teachers');

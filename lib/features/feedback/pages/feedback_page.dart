@@ -5,14 +5,14 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
-import '../../../core/helpers/form_submission_helper.dart';
-import '../../../core/helpers/input_sanitizer.dart';
-import '../../../core/app_constants.dart';
+import '../../../core/di/service_locator.dart';
+import '../../../core/repositories/feedback_repository.dart';
 import '../../../core/queue_service.dart';
+import '../../../core/helpers/input_sanitizer.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../models/models.dart';
-import '../../../core/di/service_locator.dart';
 import '../../../core/repositories/metadata_repository.dart';
+import '../../../core/app_constants.dart';
 
 /// Feedback submission page with form for user feedback.
 class FeedbackPage extends StatefulWidget {
@@ -118,7 +118,7 @@ class _FeedbackPageState extends State<FeedbackPage>
         ).toJson();
 
         // Optimistic UI Update: Add to queue and pop immediately
-        await QueueService.addToQueue('feedback', auid, feedbackData);
+        await sl<QueueService>().addToQueue('feedback', auid, feedbackData);
         
         if (mounted) {
           AppRoutes.navigatorKey.currentState?.pop();
@@ -135,10 +135,9 @@ class _FeedbackPageState extends State<FeedbackPage>
         );
 
         // Process in background
-        FormSubmissionHelper.submitForm(
-          type: 'feedback',
-          auid: auid,
-          data: feedbackData,
+        sl<FeedbackRepository>().submitFeedback(
+          auid,
+          feedbackData,
         ).then((submitted) {
           if (!submitted && mounted) {
             scaffoldMessenger.showSnackBar(
@@ -479,7 +478,7 @@ class _FeedbackPageState extends State<FeedbackPage>
     return TextFormField(
       controller: _feedbackController,
       maxLines: 5,
-      maxLength: 1000,
+      maxLength: InputSanitizer.maxLength,
       maxLengthEnforcement: MaxLengthEnforcement.enforced,
       style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
       decoration: InputDecoration(

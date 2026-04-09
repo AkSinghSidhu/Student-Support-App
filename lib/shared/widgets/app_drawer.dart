@@ -62,7 +62,7 @@ class _AppDrawerState extends State<AppDrawer> {
     cancelAttendanceCheck();
 
     try {
-      await CacheService.clearAllUserCache();
+      await sl<CacheService>().clearAllUserCache();
     } catch (e) {
       developer.log('Logout cleanup error: $e', name: 'AppDrawer');
     }

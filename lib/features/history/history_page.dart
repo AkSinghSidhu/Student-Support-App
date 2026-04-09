@@ -9,6 +9,7 @@ import '../../core/theme/theme_provider.dart';
 import '../../core/database_service.dart';
 import '../../core/queue_service.dart';
 import '../../models/models.dart';
+import '../../core/di/service_locator.dart';
 import '../../shared/widgets/custom_app_bar.dart';
 import '../../shared/widgets/shimmer_loader.dart';
 import '../../shared/widgets/loading_overlay.dart';
@@ -46,8 +47,9 @@ class _HistoryPageState extends State<HistoryPage> with TickerProviderStateMixin
         return;
       }
 
-      final complaintsSnapshot = await DatabaseService.db.child('complaints').child(_auid!).once();
-      final feedbackSnapshot = await DatabaseService.db.child('feedback').child(_auid!).once();
+      final dbService = sl<DatabaseService>();
+      final complaintsSnapshot = await dbService.db.child('complaints').child(_auid!).once();
+      final feedbackSnapshot = await dbService.db.child('feedback').child(_auid!).once();
 
       final List<Map<String, dynamic>> loadedComplaints = [];
       if (complaintsSnapshot.snapshot.value != null) {
@@ -89,7 +91,7 @@ class _HistoryPageState extends State<HistoryPage> with TickerProviderStateMixin
       loadedComplaints.sort((a, b) => (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? ''));
       loadedFeedback.sort((a, b) => (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? ''));
 
-      final pendingItems = await QueueService.getPendingItems();
+      final pendingItems = await sl<QueueService>().getPendingItems();
 
       if (mounted) {
         setState(() {

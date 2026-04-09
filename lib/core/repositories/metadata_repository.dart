@@ -1,14 +1,26 @@
 import 'dart:developer' as developer;
+import '../di/service_locator.dart';
 import '../database_service.dart';
 import '../services/cache_service.dart';
 import '../app_constants.dart';
 
-class MetadataRepository {
+abstract class IMetadataRepository {
+  Future<Map<String, List<String>>> getDepartmentTeachers();
+}
+
+class MetadataRepository implements IMetadataRepository {
+  final DatabaseService _dbService;
+  final CacheService _cacheService;
+
+  MetadataRepository({DatabaseService? dbService, CacheService? cacheService})
+      : _dbService = dbService ?? sl<DatabaseService>(),
+        _cacheService = cacheService ?? sl<CacheService>();
   /// Fetches the department to teacher mapping from Firebase RTDB.
   /// Uses a robust fallback chain: Firebase -> Hive (Cache) -> AppConstants (Default).
+  @override
   Future<Map<String, List<String>>> getDepartmentTeachers() async {
     try {
-      final snapshot = await DatabaseService.db
+      final snapshot = await _dbService.db
           .child('config')
           .child('departmentTeachers')
           .get();
@@ -26,7 +38,7 @@ class MetadataRepository {
 
           if (mappedData.isNotEmpty) {
             // Cache the newly fetched data
-            await CacheService.cacheDepartmentTeachers(mappedData);
+            await _cacheService.cacheDepartmentTeachers(mappedData);
             return mappedData;
           }
         }
@@ -37,7 +49,7 @@ class MetadataRepository {
     }
 
     // Fallback 1: Try to load from Hive cache
-    final cachedData = CacheService.getCachedDepartmentTeachers();
+    final cachedData = _cacheService.getCachedDepartmentTeachers();
     if (cachedData != null && cachedData.isNotEmpty) {
       developer.log('Serving departmentTeachers from Cache',
           name: 'MetadataRepository');

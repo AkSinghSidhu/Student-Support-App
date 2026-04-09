@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/notification_store.dart';
+import '../../core/di/service_locator.dart';
 import '../../shared/widgets/custom_app_bar.dart';
 
 /// Full-page notification center showing attendance alerts, draft syncs, etc.
@@ -19,19 +20,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   void initState() {
     super.initState();
-    _notificationsFuture = NotificationStore.getAll();
+    _notificationsFuture = sl<NotificationStore>().getAll();
   }
 
   void _refresh() {
     if (mounted) {
       setState(() {
-        _notificationsFuture = NotificationStore.getAll();
+        _notificationsFuture = sl<NotificationStore>().getAll();
       });
     }
   }
 
   Future<void> _markAllRead() async {
-    await NotificationStore.markAllAsRead();
+    await sl<NotificationStore>().markAllAsRead();
     _refresh();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -41,7 +42,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Future<void> _clearAll() async {
-    await NotificationStore.clearAll();
+    await sl<NotificationStore>().clearAll();
     _refresh();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -183,7 +184,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           onTap: () async {
             final id = item['id'] as String? ?? '';
             if (id.isNotEmpty) {
-              await NotificationStore.markAsRead(id);
+              await sl<NotificationStore>().markAsRead(id);
               _refresh();
             }
           },

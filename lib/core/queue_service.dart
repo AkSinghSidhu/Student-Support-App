@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app_constants.dart';
 import 'database_service.dart';
 import '../models/models.dart';
+import 'di/service_locator.dart';
 
 /// Result object returned by [QueueService.retryAll] so callers know
 /// exactly what happened during the retry sweep.
@@ -22,10 +23,16 @@ class QueueRetryResult {
   bool get hasActivity => sentCount > 0 || expiredCount > 0;
 }
 
+
+
 class QueueService {
+  final DatabaseService _dbService;
+
+  QueueService({DatabaseService? dbService})
+      : _dbService = dbService ?? sl<DatabaseService>();
 
   /// Save a new pending item to the queue
-  static Future<void> addToQueue(String type, String auid, Map<String, dynamic> data) async {
+  Future<void> addToQueue(String type, String auid, Map<String, dynamic> data) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       
@@ -50,7 +57,7 @@ class QueueService {
   }
 
   /// Retrieve all pending items
-  static Future<List<QueueItemModel>> getPendingItems() async {
+  Future<List<QueueItemModel>> getPendingItems() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? queueString = prefs.getString(AppConstants.pendingQueueKey);
@@ -68,7 +75,7 @@ class QueueService {
   }
 
   /// Delete an item from the queue after it successfully sends
-  static Future<void> removeFromQueue(String localId) async {
+  Future<void> removeFromQueue(String localId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       List<QueueItemModel> queue = await getPendingItems();
@@ -86,7 +93,7 @@ class QueueService {
 
   /// Loop through all pending items and try to send them to Firebase.
   /// Returns a [QueueRetryResult] with counts of sent, expired, and failed items.
-  static Future<QueueRetryResult> retryAll() async {
+  Future<QueueRetryResult> retryAll() async {
     int sentCount = 0;
     int expiredCount = 0;
     int failedCount = 0;
@@ -98,7 +105,7 @@ class QueueService {
         return const QueueRetryResult();
       }
 
-      final database = DatabaseService.db;
+      final database = _dbService.db;
 
       for (final item in queue) {
         if (item.isExpired) {

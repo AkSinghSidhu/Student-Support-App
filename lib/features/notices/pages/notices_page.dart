@@ -121,7 +121,7 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
               onRefresh: _refresh,
               color: AppColors.noticesColor,
               child: StreamBuilder<List<Map<String, dynamic>>>(
-              initialData: CacheService.getNotices(),
+              initialData: sl<CacheService>().getNotices(),
               stream: _noticesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {

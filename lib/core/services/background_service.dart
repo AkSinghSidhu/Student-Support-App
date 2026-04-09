@@ -77,7 +77,7 @@ void callbackDispatcher() {
         await sl<NotificationService>().showNotification(title: title, body: body);
 
         // Store in-app notification
-        await NotificationStore.addNotification(
+        await sl<NotificationStore>().addNotification(
           title: title,
           body: body,
           type: 'attendance',

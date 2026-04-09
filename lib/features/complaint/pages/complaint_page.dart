@@ -5,12 +5,13 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
-import '../../../core/helpers/form_submission_helper.dart';
+import '../../../core/di/service_locator.dart';
+import '../../../core/repositories/complaint_repository.dart';
 import '../../../core/helpers/input_sanitizer.dart';
 import '../../../core/app_constants.dart';
-import '../../../core/queue_service.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../models/models.dart';
+import '../../../core/queue_service.dart';
 
 /// Complaint submission page with form for reporting issues.
 class ComplaintPage extends StatefulWidget {
@@ -100,7 +101,7 @@ class _ComplaintPageState extends State<ComplaintPage>
         ).toJson();
 
         // Optimistic UI Update: Add to queue and pop immediately
-        await QueueService.addToQueue('complaints', auid, complaintData);
+        await sl<QueueService>().addToQueue('complaints', auid, complaintData);
         
         if (mounted) {
           AppRoutes.navigatorKey.currentState?.pop();
@@ -117,10 +118,9 @@ class _ComplaintPageState extends State<ComplaintPage>
         );
 
         // Process in background
-        FormSubmissionHelper.submitForm(
-          type: 'complaints',
-          auid: auid,
-          data: complaintData,
+        sl<ComplaintRepository>().submitComplaint(
+          auid,
+          complaintData,
         ).then((submitted) {
           if (!submitted && mounted) {
             scaffoldMessenger.showSnackBar(
@@ -398,7 +398,7 @@ class _ComplaintPageState extends State<ComplaintPage>
     return TextFormField(
       controller: _descriptionController,
       maxLines: 5,
-      maxLength: 1000,
+      maxLength: InputSanitizer.maxLength,
       maxLengthEnforcement: MaxLengthEnforcement.enforced,
       style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
       decoration: InputDecoration(

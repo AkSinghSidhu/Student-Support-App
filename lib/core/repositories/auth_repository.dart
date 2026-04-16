@@ -37,8 +37,15 @@ class AuthRepository implements IAuthRepository {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.auidKey, auid);
+      
+      final user = UserModel.fromJson(auid, data);
+      await prefs.setString(AppConstants.userNameKey, user.name);
+      await prefs.setString(AppConstants.userDepartmentKey, user.department);
+      await prefs.setString(AppConstants.userEmailKey, user.email);
+      // Fallback joined date if createdAt not in db
+      await prefs.setString(AppConstants.userJoinedKey, data['createdAt'] as String? ?? DateTime.now().toIso8601String());
 
-      return UserModel.fromJson(auid, data);
+      return user;
     } catch (e) {
       developer.log('Login error: $e', name: 'AuthRepository');
       rethrow;

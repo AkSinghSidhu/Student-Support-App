@@ -9,6 +9,10 @@ class AppConstants {
   // SharedPreferences Keys
   static const String themeModeKey = 'theme_mode';
   static const String auidKey = 'logged_in_auid';
+  static const String userNameKey = 'user_name';
+  static const String userDepartmentKey = 'user_department';
+  static const String userEmailKey = 'user_email';
+  static const String userJoinedKey = 'user_joined_date';
   static const String rememberMeKey = 'remember_me';
   static const String languageKey = 'language';
   static const String seenNoticeIdsKey = 'seen_notice_ids';

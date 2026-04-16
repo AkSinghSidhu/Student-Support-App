@@ -32,6 +32,7 @@ class AppDrawer extends StatefulWidget {
 
 class _AppDrawerState extends State<AppDrawer> {
   String _appVersion = '';
+  String _appBuild = '';
 
   @override
   void initState() {
@@ -43,14 +44,20 @@ class _AppDrawerState extends State<AppDrawer> {
     try {
       final info = await PackageInfo.fromPlatform();
       if (!mounted) return;
-      setState(() => _appVersion = 'v${info.version} (build ${info.buildNumber})');
+      setState(() {
+        _appVersion = 'v${info.version}';
+        _appBuild = info.buildNumber;
+      });
     } catch (e) {
       developer.log(
         'Failed to load app version: $e',
         name: 'AppDrawer',
       );
       if (!mounted) return;
-      setState(() => _appVersion = 'v0.1.0 (build 1)');
+      setState(() {
+        _appVersion = 'v0.1.0';
+        _appBuild = '1';
+      });
     }
   }
 
@@ -225,9 +232,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     isDarkMode: isDarkMode,
                     onTap: () {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Profile page coming soon')),
-                      );
+                      Navigator.pushNamed(context, AppRoutes.profile);
                     },
                   ),
                   _buildTile(
@@ -245,7 +250,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     icon: Icons.lock_outline,
                     iconColor: AppColors.primaryGold,
                     title: 'Change Password',
-                    subtitle: 'Coming soon',
+                    subtitle: 'Available after account upgrade',
                     isDarkMode: isDarkMode,
                     opacity: 0.4,
                     onTap: () {
@@ -347,7 +352,7 @@ class _AppDrawerState extends State<AppDrawer> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  _appVersion,
+                                  '$_appVersion (build $_appBuild)',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 13,
@@ -403,9 +408,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     isDarkMode: isDarkMode,
                     onTap: () {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Privacy Policy coming soon')),
-                      );
+                      Navigator.pushNamed(context, AppRoutes.privacy);
                     },
                   ),
                 ],
@@ -468,19 +471,7 @@ class _AppDrawerState extends State<AppDrawer> {
             },
           ),
 
-          // ─── VERSION ───
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md, top: AppSpacing.sm),
-              child: Center(
-                child: Text(
-                  _appVersion,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ),
-            ),
+
         ],
       ),
     );

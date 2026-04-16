@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import '../../../shared/widgets/search_bar_widget.dart';
@@ -16,7 +17,7 @@ class ResourcesPage extends StatefulWidget {
 }
 
 class _ResourcesPageState extends State<ResourcesPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -113,10 +114,10 @@ class _ResourcesPageState extends State<ResourcesPage>
         child: Column(
           children: [
             // Tab bar
-            _buildTabBar(isDarkMode),
+            _buildTabBar(context, isDarkMode),
             // Search bars mapped to tabs
-            AnimatedBuilder(
-              animation: _tabController,
+            ListenableBuilder(
+              listenable: _tabController,
               builder: (context, _) {
                 final index = _tabController.index;
                 return SearchBarWidget(
@@ -146,7 +147,7 @@ class _ResourcesPageState extends State<ResourcesPage>
     );
   }
 
-  Widget _buildTabBar(bool isDarkMode) {
+  Widget _buildTabBar(BuildContext context, bool isDarkMode) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       padding: const EdgeInsets.all(4),
@@ -164,16 +165,18 @@ class _ResourcesPageState extends State<ResourcesPage>
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          color: AppColors.resourcesColor,
-          borderRadius: BorderRadius.circular(10),
+          color: isDarkMode ? AppColors.primaryGold : AppColors.primaryDarkBlue,
+          borderRadius: BorderRadius.circular(50),
         ),
-        labelColor: AppColors.primaryWhite,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicatorPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        labelPadding: EdgeInsets.zero,
+        labelColor: isDarkMode ? AppColors.primaryBlack : AppColors.primaryWhite,
         unselectedLabelColor: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-        labelStyle: const TextStyle(
-          fontSize: 13,
+        labelStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w600,
         ),
-        dividerColor: Colors.transparent,
+        dividerColor: AppColors.transparent,
         tabs: const [
           Tab(text: 'Books'),
           Tab(text: 'Notes'),
@@ -203,12 +206,12 @@ class _ResourcesPageState extends State<ResourcesPage>
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       itemCount: filteredItems.length,
       itemBuilder: (context, index) {
-        return _buildResourceCard(filteredItems[index], type, isDarkMode);
+        return _buildResourceCard(context, filteredItems[index], type, isDarkMode);
       },
     );
   }
 
-  Widget _buildResourceCard(Map<String, dynamic> item, String type, bool isDarkMode) {
+  Widget _buildResourceCard(BuildContext context, Map<String, dynamic> item, String type, bool isDarkMode) {
     IconData icon;
     Color color;
     String subtitle;
@@ -216,17 +219,17 @@ class _ResourcesPageState extends State<ResourcesPage>
     switch (type) {
       case 'book':
         icon = Icons.book_outlined;
-        color = const Color(0xFF6366F1);
+        color = AppColors.primaryDarkBlue;
         subtitle = 'by ${item['author']}';
         break;
       case 'note':
         icon = Icons.description_outlined;
-        color = const Color(0xFF10B981);
+        color = AppColors.success;
         subtitle = '${item['subject']} • ${item['pages']} pages';
         break;
       case 'pyq':
         icon = Icons.quiz_outlined;
-        color = const Color(0xFFF97316);
+        color = AppColors.warning;
         subtitle = '${item['year']} ${item['semester']} Exam';
         break;
       default:
@@ -249,7 +252,7 @@ class _ResourcesPageState extends State<ResourcesPage>
         ],
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: () {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -276,26 +279,24 @@ class _ResourcesPageState extends State<ResourcesPage>
                   ),
                   child: Icon(icon, color: color, size: 24),
                 ),
-                const SizedBox(width: 14),
+                AppSpacing.horizontalMd,
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         item['title'],
-                        style: TextStyle(
-                          fontSize: 14,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      AppSpacing.verticalXs,
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                         ),
                       ),

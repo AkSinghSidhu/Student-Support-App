@@ -5,6 +5,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/routes/app_routes.dart';
 
+import '../../core/app_constants.dart';
+
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
 
@@ -21,7 +23,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       'icon': Icons.school_outlined,
       'color': AppColors.primaryDarkBlue,
       'title': 'Track Your Attendance',
-      'body': 'Stay on top of every subject. Get alerts before you fall below 75%.',
+      'body': 'Stay on top of every subject. Get alerts before you fall below ${AppConstants.attendanceThreshold.toInt()}%.',
     },
     {
       'icon': Icons.notifications_active_outlined,
@@ -40,9 +42,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_complete', true);
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
-    }
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
+    );
   }
 
   @override
@@ -163,7 +168,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           onPressed: _completeOnboarding,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryDarkBlue,
-                            foregroundColor: Colors.white,
+                            foregroundColor: AppColors.primaryWhite,
                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -186,7 +191,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 curve: Curves.easeInOut,
                               );
                             },
-                            icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                            icon: const Icon(Icons.arrow_forward, color: AppColors.primaryWhite),
                           ),
                         ),
                 ],

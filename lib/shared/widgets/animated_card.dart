@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/theme_provider.dart';
+import '../../core/theme/app_colors.dart';
 
 /// Animated card with scale and fade effects for interactive elements.
 class AnimatedCard extends StatefulWidget {
@@ -93,7 +94,7 @@ class _AnimatedCardState extends State<AnimatedCard>
                 boxShadow: _isPressed
                     ? [
                         BoxShadow(
-                          color: isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.black.withAlpha(25),
+                          color: isDarkMode ? AppColors.primaryWhite.withValues(alpha: 0.05) : AppColors.primaryBlack.withValues(alpha: 0.098),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),

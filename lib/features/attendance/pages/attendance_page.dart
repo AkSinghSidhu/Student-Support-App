@@ -3,11 +3,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
-import '../../../core/services/cache_service.dart';
-import '../../../core/database_service.dart';
 import '../../../core/app_constants.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
+import '../../../core/repositories/attendance_repository.dart';
+import '../../../models/models.dart';
+import '../../../core/di/service_locator.dart';
 
 /// Attendance page with summary and push notification alerts.
 class AttendancePage extends StatefulWidget {
@@ -23,7 +25,8 @@ class _AttendancePageState extends State<AttendancePage> {
   bool _isLoading = true;
   String? _errorMessage;
 
-  List<Map<String, dynamic>> _subjects = [];
+  List<SubjectModel> _subjects = [];
+  final _repo = sl<AttendanceRepository>();
 
   @override
   void initState() {
@@ -53,76 +56,11 @@ class _AttendancePageState extends State<AttendancePage> {
         return;
       }
 
-      // 1. Try to load from cache first
-      final cachedData = CacheService.getAttendance(auid);
-      if (cachedData != null && mounted) {
-        final List<Map<String, dynamic>> loadedSubjects = [];
-        cachedData.forEach((key, value) {
-          if (value is! Map) return;
-          final subject = Map<String, dynamic>.from(value);
-          final attended = (subject['attended'] as num).toInt();
-          final total = (subject['total'] as num).toInt();
-          final percent = total > 0 ? (attended / total * 100) : 0.0;
-
-          loadedSubjects.add({
-            'code': key,
-            'name': subject['name'] ?? key,
-            'attended': attended,
-            'total': total,
-            'percent': percent,
-          });
-        });
+      final subjects = await _repo.getSubjects(auid);
+      if (mounted) {
         setState(() {
-          _subjects = loadedSubjects;
+          _subjects = subjects;
           _isLoading = false;
-        });
-      }
-
-      // 2. Fetch fresh data from Firebase behind the scenes
-      final database = DatabaseService.db;
-
-      final snapshot = await database.child('attendance').child(auid).child('subjects').get();
-
-      if (snapshot.exists && mounted) {
-        // FIX: Safe type check — Firebase may return String instead of Map
-        final rawValue = snapshot.value;
-        if (rawValue is! Map) {
-          setState(() {
-            _isLoading = false;
-            _errorMessage = 'Invalid data format. Contact admin.';
-          });
-          return;
-        }
-        final subjectsData = Map<String, dynamic>.from(rawValue);
-        final List<Map<String, dynamic>> loadedSubjects = [];
-
-        subjectsData.forEach((key, value) {
-          if (value is! Map) return;
-          final subject = Map<String, dynamic>.from(value);
-          final attended = (subject['attended'] as num).toInt();
-          final total = (subject['total'] as num).toInt();
-          final percent = total > 0 ? (attended / total * 100) : 0.0;
-
-          loadedSubjects.add({
-            'code': key,
-            'name': subject['name'] ?? key,
-            'attended': attended,
-            'total': total,
-            'percent': percent,
-          });
-        });
-
-        setState(() {
-          _subjects = loadedSubjects;
-          _isLoading = false;
-        });
-        
-        // Cache the fresh data for next time
-        await CacheService.cacheAttendance(auid, subjectsData);
-      } else {
-        setState(() {
-          _isLoading = false;
-          // Don't overwrite existing cached data error message if empty
           if (_subjects.isEmpty) {
             _errorMessage = 'No attendance data found';
           }
@@ -139,7 +77,7 @@ class _AttendancePageState extends State<AttendancePage> {
   }
 
   Color _getColor(double percent) {
-    if (percent >= 75) return AppColors.success;
+    if (percent >= AppConstants.attendanceThreshold) return AppColors.success;
     if (percent >= 65) return AppColors.warning;
     return AppColors.error;
   }
@@ -167,9 +105,9 @@ class _AttendancePageState extends State<AttendancePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.error_outline, size: 64, color: AppColors.error),
-              const SizedBox(height: 16),
-              Text(_errorMessage!, style: TextStyle(fontSize: 16, color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
-              const SizedBox(height: 16),
+              AppSpacing.verticalMd,
+              Text(_errorMessage!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+              AppSpacing.verticalMd,
               ElevatedButton(
                 onPressed: () {
                   setState(() {
@@ -186,12 +124,12 @@ class _AttendancePageState extends State<AttendancePage> {
       );
     }
 
-    final totalAttended = _subjects.fold<int>(0, (s, e) => s + (e['attended'] as int));
-    final totalClasses = _subjects.fold<int>(0, (s, e) => s + (e['total'] as int));
+    final totalAttended = _subjects.fold<int>(0, (s, e) => s + e.attended);
+    final totalClasses = _subjects.fold<int>(0, (s, e) => s + e.total);
     final overall = totalClasses > 0 ? totalAttended / totalClasses * 100 : 0.0;
 
     // Count low attendance subjects
-    final lowSubjects = _subjects.where((s) => (s['percent'] as double) < alertThreshold).toList();
+    final lowSubjects = _subjects.where((s) => s.isLow).toList();
 
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -219,24 +157,24 @@ class _AttendancePageState extends State<AttendancePage> {
             child: Column(
               children: [
                 Text('Overall: ${overall.toStringAsFixed(1)}%',
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 8),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primaryWhite)),
+                AppSpacing.verticalSm,
                 Text('$totalAttended / $totalClasses classes',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8))),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.primaryWhite.withValues(alpha: 0.8))),
                 if (overall < alertThreshold) ...[
-                  const SizedBox(height: 12),
+                  AppSpacing.verticalSm,
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: AppColors.primaryWhite.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.warning_amber_rounded, color: Colors.white, size: 16),
-                        SizedBox(width: 6),
-                        Text('Below 75% threshold', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        const Icon(Icons.warning_amber_rounded, color: AppColors.primaryWhite, size: 16),
+                        AppSpacing.horizontalSm,
+                        Text('Below ${AppConstants.attendanceThreshold.toInt()}% threshold', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.primaryWhite)),
                       ],
                     ),
                   ),
@@ -280,18 +218,17 @@ class _AttendancePageState extends State<AttendancePage> {
                     children: [
                       Text(
                         lowSubjects.isNotEmpty ? 'Low Attendance Alert' : 'All Good!',
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
-                          fontSize: 14,
                           color: lowSubjects.isNotEmpty ? AppColors.error : (isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      AppSpacing.verticalXs,
                       Text(
                         lowSubjects.isNotEmpty
-                            ? '${lowSubjects.length} subject${lowSubjects.length > 1 ? "s" : ""} below 75%: ${lowSubjects.map((s) => s["name"]).join(", ")}'
-                            : 'All subjects are above 75% threshold',
-                        style: TextStyle(fontSize: 12, color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                            ? '${lowSubjects.length} subject${lowSubjects.length > 1 ? "s" : ""} below ${AppConstants.attendanceThreshold.toInt()}%: ${lowSubjects.map((s) => s.name).join(", ")}'
+                            : 'All subjects are above ${AppConstants.attendanceThreshold.toInt()}% threshold',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                       ),
                     ],
                   ),
@@ -299,12 +236,12 @@ class _AttendancePageState extends State<AttendancePage> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          const Text('Subject-wise', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
+          AppSpacing.verticalLg,
+          Text('Subject-wise', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+          AppSpacing.verticalSm,
           ..._subjects.map((s) {
-            final p = s['percent'] as double;
-            final isLow = p < alertThreshold;
+            final p = s.percent;
+            final isLow = s.isLow;
               return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
@@ -318,21 +255,21 @@ class _AttendancePageState extends State<AttendancePage> {
                   Expanded(
                     child: Row(children: [
                       Flexible(
-                        child: Text(s['name'], style: TextStyle(fontWeight: FontWeight.w600, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight), overflow: TextOverflow.ellipsis),
+                        child: Text(s.name, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight), overflow: TextOverflow.ellipsis),
                       ),
                       if (isLow) ...[
-                        const SizedBox(width: 8),
+                        AppSpacing.horizontalSm,
                         const Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 16),
                       ],
                     ]),
                   ),
-                  const SizedBox(width: 8),
-                  Text('${p.toStringAsFixed(1)}%', style: TextStyle(color: _getColor(p), fontWeight: FontWeight.w600)),
+                  AppSpacing.horizontalSm,
+                  Text(s.percentFormatted, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: _getColor(p), fontWeight: FontWeight.w600)),
                 ]),
-                const SizedBox(height: 4),
-                Text('${s['attended']} / ${s['total']} classes',
-                    style: TextStyle(fontSize: 12, color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
-                const SizedBox(height: 8),
+                AppSpacing.verticalXs,
+                Text('${s.attended} / ${s.total} classes',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+                AppSpacing.verticalSm,
                 LinearProgressIndicator(value: p / 100, backgroundColor: _getColor(p).withValues(alpha: 0.2), valueColor: AlwaysStoppedAnimation(_getColor(p))),
               ]),
             );

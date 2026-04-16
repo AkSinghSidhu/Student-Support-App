@@ -2,11 +2,19 @@ import 'dart:developer' as developer;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../database_service.dart';
 import '../queue_service.dart';
+import '../di/service_locator.dart';
 
 class FormSubmissionHelper {
+  final DatabaseService _dbService;
+  final QueueService _queueService;
+
+  FormSubmissionHelper({DatabaseService? dbService, QueueService? queueService})
+      : _dbService = dbService ?? sl<DatabaseService>(),
+        _queueService = queueService ?? sl<QueueService>();
+
   static const List<String> _allowedTypes = ['complaints', 'feedback'];
 
-  static Future<bool> submitForm({
+  Future<bool> submitForm({
     required String type,
     required String auid,
     required Map<String, dynamic> data,
@@ -24,14 +32,14 @@ class FormSubmissionHelper {
       final isOnline = !connectivityResult.contains(ConnectivityResult.none);
 
       if (isOnline) {
-        final database = DatabaseService.db;
+        final database = _dbService.db;
         final ref = database.child(type).child(auid).push();
         
         await ref.set(data).timeout(const Duration(seconds: 5));
         return true;
       } else {
         // Offline - Add to Queue
-        await QueueService.addToQueue(type, auid, data);
+        await _queueService.addToQueue(type, auid, data);
         return false;
       }
     } catch (e) {

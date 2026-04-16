@@ -5,14 +5,19 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'cache_service.dart';
 import '../app_constants.dart';
+import '../di/service_locator.dart';
 import '../database_service.dart';
+
 /// Service to stream notices from Firebase RTDB and send notifications for new ones.
 /// Self-contained: uses its own notification channel so it doesn't touch
 /// attendance notification logic at all.
 class NoticeService {
-  static final NoticeService _instance = NoticeService._internal();
-  factory NoticeService() => _instance;
-  NoticeService._internal();
+  final DatabaseService _dbService;
+  final CacheService _cacheService;
+
+  NoticeService({DatabaseService? dbService, CacheService? cacheService})
+      : _dbService = dbService ?? sl<DatabaseService>(),
+        _cacheService = cacheService ?? sl<CacheService>();
 
   StreamSubscription<DatabaseEvent>? _childAddedSubscription;
 
@@ -24,7 +29,7 @@ class NoticeService {
 
   int _notifId = 5000; // offset to avoid collision with attendance notif IDs
 
-  DatabaseReference get _noticesRef => DatabaseService.db.child('notices');
+  DatabaseReference get _noticesRef => _dbService.db.child('notices');
 
   /// Initialize the notification channel and plugin for notices.
   Future<void> _initNotifications() async {
@@ -182,7 +187,7 @@ class NoticeService {
           (b['createdAt'] as String).compareTo(a['createdAt'] as String));
           
       // Cache the loaded notices offline
-      CacheService.cacheNotices(notices);
+      _cacheService.cacheNotices(notices);
       
       return notices;
     });

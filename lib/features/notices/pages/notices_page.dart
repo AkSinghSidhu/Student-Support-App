@@ -7,6 +7,7 @@ import '../../../core/services/notice_service.dart';
 import '../../../core/services/cache_service.dart';
 import '../../../shared/widgets/search_bar_widget.dart';
 import '../../../shared/widgets/shimmer_loader.dart';
+import '../../../core/di/service_locator.dart';
 
 /// Notices page with announcements list and filters.
 class NoticesPage extends StatefulWidget {
@@ -29,7 +30,7 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _noticesStream = NoticeService().noticesStream();
+    _noticesStream = sl<NoticeService>().noticesStream();
     _listController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -107,7 +108,7 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
                     alignment: Alignment.center,
                     child: Text(_filters[i], style: TextStyle(
                       fontSize: 13, fontWeight: FontWeight.w500,
-                      color: isActive ? Colors.white : (isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                      color: isActive ? AppColors.primaryWhite : (isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                     )),
                   ),
                 );
@@ -120,7 +121,7 @@ class _NoticesPageState extends State<NoticesPage> with SingleTickerProviderStat
               onRefresh: _refresh,
               color: AppColors.noticesColor,
               child: StreamBuilder<List<Map<String, dynamic>>>(
-              initialData: CacheService.getNotices(),
+              initialData: sl<CacheService>().getNotices(),
               stream: _noticesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {

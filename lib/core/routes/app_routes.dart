@@ -9,10 +9,16 @@ import '../../features/attendance/pages/attendance_page.dart';
 import '../../features/notices/pages/notices_page.dart';
 import '../../features/onboarding/onboarding_page.dart';
 import '../../features/history/history_page.dart';
+import '../../features/profile/pages/profile_page.dart';
+import '../../features/privacy/pages/privacy_policy_page.dart';
+import '../../shared/widgets/error_boundary.dart';
 
 /// Named route definitions and route generator for clean navigation.
 class AppRoutes {
   AppRoutes._();
+
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   // Route names
   static const String login = '/login';
@@ -25,6 +31,8 @@ class AppRoutes {
   static const String notices = '/notices';
   static const String onboarding = '/onboarding';
   static const String history = '/history';
+  static const String profile = '/profile';
+  static const String privacy = '/privacy';
 
   /// Route generator for MaterialApp
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -49,6 +57,10 @@ class AppRoutes {
         return _buildPageRoute(const OnboardingPage(), settings);
       case history:
         return _buildPageRoute(const HistoryPage(), settings);
+      case profile:
+        return _buildPageRoute(const ProfilePage(), settings);
+      case privacy:
+        return _buildPageRoute(const PrivacyPolicyPage(), settings);
       default:
         return _buildPageRoute(const LoginPage(), settings);
     }
@@ -61,7 +73,7 @@ class AppRoutes {
   ) {
     return PageRouteBuilder(
       settings: settings,
-      pageBuilder: (context, animation, secondaryAnimation) => page,
+      pageBuilder: (context, animation, secondaryAnimation) => ErrorBoundary(child: page),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(1.0, 0.0);
         const end = Offset.zero;

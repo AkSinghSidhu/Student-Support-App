@@ -5,10 +5,10 @@ import '../app_constants.dart';
 
 /// Hive-based local storage service for in-app notifications.
 class NotificationStore {
-  static Box get _box => Hive.box(AppConstants.notificationsBoxKey);
+  Box get _box => Hive.box(AppConstants.notificationsBoxKey);
 
   /// Add a new notification to the store.
-  static Future<void> addNotification({
+  Future<void> addNotification({
     required String title,
     required String body,
     required String type,
@@ -35,7 +35,7 @@ class NotificationStore {
   }
 
   /// Get all notifications, newest first.
-  static Future<List<Map<String, dynamic>>> getAll() async {
+  Future<List<Map<String, dynamic>>> getAll() async {
     try {
       return _getList();
     } catch (e) {
@@ -45,7 +45,7 @@ class NotificationStore {
   }
 
   /// Mark a single notification as read by its id.
-  static Future<void> markAsRead(String id) async {
+  Future<void> markAsRead(String id) async {
     try {
       final list = _getList();
       for (final item in list) {
@@ -61,7 +61,7 @@ class NotificationStore {
   }
 
   /// Mark all notifications as read.
-  static Future<void> markAllAsRead() async {
+  Future<void> markAllAsRead() async {
     try {
       final list = _getList();
       for (final item in list) {
@@ -74,7 +74,7 @@ class NotificationStore {
   }
 
   /// Clear all stored notifications.
-  static Future<void> clearAll() async {
+  Future<void> clearAll() async {
     try {
       await _box.put('items', jsonEncode([]));
     } catch (e) {
@@ -83,7 +83,7 @@ class NotificationStore {
   }
 
   /// Get the number of unread notifications.
-  static Future<int> getUnreadCount() async {
+  Future<int> getUnreadCount() async {
     try {
       final list = _getList();
       return list.where((item) => item['isRead'] == false).length;
@@ -94,7 +94,7 @@ class NotificationStore {
   }
 
   /// Internal helper to parse the stored JSON list.
-  static List<Map<String, dynamic>> _getList() {
+  List<Map<String, dynamic>> _getList() {
     try {
       final raw = _box.get('items');
       if (raw == null) return [];

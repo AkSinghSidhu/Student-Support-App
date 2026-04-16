@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'core/app_constants.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/theme_provider.dart';
 
 import 'core/routes/app_routes.dart';
@@ -19,58 +20,90 @@ import 'core/queue_service.dart';
 import 'core/services/notification_store.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'shared/widgets/offline_banner.dart';
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+import 'shared/widgets/error_boundary.dart';
+import 'core/di/service_locator.dart';
 
-  FlutterError.onError = (FlutterErrorDetails details) {
-    developer.log(
-      'Flutter error: ${details.exception}',
-      name: 'GlobalErrorHandler',
-      error: details.exception,
-      stackTrace: details.stack,
+void main() async {
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    setupErrorBoundary();
+
+    FlutterError.onError = (FlutterErrorDetails details) {
+      developer.log(
+        'Flutter error: ${details.exception}',
+        name: 'GlobalErrorHandler',
+        error: details.exception,
+        stackTrace: details.stack,
+      );
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      developer.log(
+        'Platform error: $error',
+        name: 'GlobalErrorHandler',
+        error: error,
+        stackTrace: stack,
+      );
+      return true;
+    };
+
+    await Firebase.initializeApp();
+    
+    // Initialize offline cache
+    await CacheService.initialize();
+
+    // Open notifications Hive box
+    await Hive.openBox(AppConstants.notificationsBoxKey);
+    
+    // Dependency Injection Setup
+    await setupServiceLocator();
+    
+    // Initialize notification service (channels, permissions)
+    await sl<NotificationService>().initialize();
+    
+    // Initialize and start the background service for attendance monitoring
+    initializeBackgroundService();
+    
+    // Start listening for new notices and send notifications
+    await sl<NoticeService>().startListening();
+    
+    // Check if user is already logged in
+    final prefs = await SharedPreferences.getInstance();
+    final loggedInAuid = prefs.getString(AppConstants.auidKey);
+    final isLoggedIn = loggedInAuid != null && loggedInAuid.isNotEmpty;
+    final onboardingDone = prefs.getBool('onboarding_complete') ?? false;
+    
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ],
+        child: StudentSupportApp(isLoggedIn: isLoggedIn, onboardingDone: onboardingDone),
+      ),
     );
-  };
-  PlatformDispatcher.instance.onError = (error, stack) {
+  } catch (e, stack) {
     developer.log(
-      'Platform error: $error',
-      name: 'GlobalErrorHandler',
-      error: error,
+      'FATAL startup error: $e',
+      name: 'main',
+      error: e,
       stackTrace: stack,
     );
-    return true;
-  };
-
-  await Firebase.initializeApp();
-  
-  // Initialize offline cache
-  await CacheService.initialize();
-
-  // Open notifications Hive box
-  await Hive.openBox(AppConstants.notificationsBoxKey);
-  
-  // Initialize notification service (channels, permissions)
-  await NotificationService().initialize();
-  
-  // Initialize and start the background service for attendance monitoring
-  initializeBackgroundService();
-  
-  // Start listening for new notices and send notifications
-  await NoticeService().startListening();
-  
-  // Check if user is already logged in
-  final prefs = await SharedPreferences.getInstance();
-  final loggedInAuid = prefs.getString(AppConstants.auidKey);
-  final isLoggedIn = loggedInAuid != null && loggedInAuid.isNotEmpty;
-  final onboardingDone = prefs.getBool('onboarding_complete') ?? false;
-  
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-      ],
-      child: StudentSupportApp(isLoggedIn: isLoggedIn, onboardingDone: onboardingDone),
-    ),
-  );
+    // Still run the app even if init fails
+    // so user sees something instead of blank screen
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Text('Startup error — please reinstall'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 
@@ -110,40 +143,57 @@ class _StudentSupportAppState extends State<StudentSupportApp> {
         });
       }
 
-      // If connected to mobile or wifi
-      if (results.contains(ConnectivityResult.mobile) || results.contains(ConnectivityResult.wifi)) {
-        final pendingItems = await QueueService.getPendingItems();
-        
-        if (pendingItems.isNotEmpty && !_isSyncing) {
-          _isSyncing = true;
-          
-          _scaffoldMessengerKey.currentState?.showSnackBar(
-            const SnackBar(
-              content: Text('Sending your saved drafts...'),
-              backgroundColor: Colors.blue,
-              duration: Duration(seconds: 2),
-            ),
-          );
-          
-          await QueueService.retryAll();
+      // Guard 1: If offline, return silently
+      final isOnline = results.contains(ConnectivityResult.mobile) || results.contains(ConnectivityResult.wifi);
+      if (!isOnline) return;
 
-          // Store in-app notification for draft sync
-          await NotificationStore.addNotification(
+      // Guard 2: If already syncing, skip
+      if (_isSyncing) return;
+
+      // Guard 3: If queue is empty, return silently — no snackbar, no noise
+      final pendingItems = await sl<QueueService>().getPendingItems();
+      if (pendingItems.isEmpty) return;
+
+      _isSyncing = true;
+
+      try {
+        final result = await sl<QueueService>().retryAll();
+
+        // Only show messages if something actually happened
+        if (result.sentCount > 0) {
+          await sl<NotificationStore>().addNotification(
             title: 'Drafts Sent',
-            body: 'Your saved drafts were submitted successfully',
+            body: '${result.sentCount} draft${result.sentCount == 1 ? '' : 's'} submitted successfully',
             type: 'draft',
           );
-          
+
           _scaffoldMessengerKey.currentState?.showSnackBar(
-            const SnackBar(
-              content: Text('All drafts sent successfully!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
+            SnackBar(
+              content: Text('${result.sentCount} draft${result.sentCount == 1 ? '' : 's'} sent successfully!'),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 3),
             ),
           );
-          
-          _isSyncing = false;
         }
+
+        if (result.expiredCount > 0) {
+          // Small delay so both snackbars show sequentially
+          if (result.sentCount > 0) {
+            await Future.delayed(const Duration(seconds: 2));
+          }
+
+          _scaffoldMessengerKey.currentState?.showSnackBar(
+            SnackBar(
+              content: Text('${result.expiredCount} expired draft${result.expiredCount == 1 ? ' was' : 's were'} removed'),
+              backgroundColor: AppColors.warning,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } catch (e) {
+        developer.log('Draft sync error: $e', name: 'main');
+      } finally {
+        _isSyncing = false;
       }
     });
   }
@@ -159,6 +209,7 @@ class _StudentSupportAppState extends State<StudentSupportApp> {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, _) {
         return MaterialApp(
+          navigatorKey: AppRoutes.navigatorKey,
           scaffoldMessengerKey: _scaffoldMessengerKey,
           title: 'Student Support',
           debugShowCheckedModeBanner: false,

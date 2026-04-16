@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:student_support_app/core/services/notification_service.dart';
 import 'package:student_support_app/core/app_constants.dart';
 import 'package:student_support_app/core/services/notification_store.dart';
+import 'package:student_support_app/core/di/service_locator.dart';
 
 const String attendanceTask = "checkAttendanceTask";
 
@@ -17,6 +18,9 @@ const String attendanceTask = "checkAttendanceTask";
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
+      // Must set up DI inside this isolate since it does not share memory with the main app
+      await setupServiceLocator();
+
       final prefs = await SharedPreferences.getInstance();
       final auid = prefs.getString(AppConstants.auidKey);
       
@@ -47,7 +51,7 @@ void callbackDispatcher() {
         totalAttended += attended;
         totalClasses += total;
 
-        if (percent < 75.0) {
+        if (percent < AppConstants.attendanceThreshold) {
           final name = subject['name'] ?? key;
           lowSubjects.add('$name (${percent.toStringAsFixed(0)}%)');
         }
@@ -57,23 +61,23 @@ void callbackDispatcher() {
 
       if (lowSubjects.isNotEmpty) {
         // Initialize NotificationService since this is a new isolate
-        await NotificationService().initialize();
+        await sl<NotificationService>().initialize();
 
         String title;
         String body;
 
-        if (overall < 75.0) {
+        if (overall < AppConstants.attendanceThreshold) {
           title = '⚠️ Low Attendance Alert';
-          body = 'Overall: ${overall.toStringAsFixed(1)}%\n${lowSubjects.join(", ")} below 75%';
+          body = 'Overall: ${overall.toStringAsFixed(1)}%\n${lowSubjects.join(", ")} below ${AppConstants.attendanceThreshold.toInt()}%';
         } else {
           title = '📚 Subject Attendance Alert';
           body = 'Low attendance in: ${lowSubjects.join(", ")}';
         }
 
-        await NotificationService().showNotification(title: title, body: body);
+        await sl<NotificationService>().showNotification(title: title, body: body);
 
         // Store in-app notification
-        await NotificationStore.addNotification(
+        await sl<NotificationStore>().addNotification(
           title: title,
           body: body,
           type: 'attendance',
@@ -81,8 +85,13 @@ void callbackDispatcher() {
       }
 
     } catch (e) {
-      // Log error internally, but return true so it can retry later
-      developer.log("WorkManager check failed: $e", name: 'BackgroundService');
+      developer.log(
+        'WorkManager attendance check failed: $e',
+        name: 'BackgroundService',
+      );
+      // Return false so WorkManager retries on next cycle
+      // instead of marking task as successful
+      return Future.value(false);
     }
     
     return Future.value(true);

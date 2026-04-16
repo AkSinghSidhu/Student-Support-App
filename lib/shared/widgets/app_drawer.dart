@@ -7,10 +7,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/services/cache_service.dart';
 import '../../core/services/background_service.dart';
 import '../../core/services/notice_service.dart';
+import '../../core/di/service_locator.dart';
 
 class AppDrawer extends StatefulWidget {
   final String studentName;
@@ -30,6 +32,7 @@ class AppDrawer extends StatefulWidget {
 
 class _AppDrawerState extends State<AppDrawer> {
   String _appVersion = '';
+  String _appBuild = '';
 
   @override
   void initState() {
@@ -40,17 +43,21 @@ class _AppDrawerState extends State<AppDrawer> {
   Future<void> _loadAppVersion() async {
     try {
       final info = await PackageInfo.fromPlatform();
-      if (mounted) {
-        setState(() => _appVersion = info.version);
-      }
+      if (!mounted) return;
+      setState(() {
+        _appVersion = 'v${info.version}';
+        _appBuild = info.buildNumber;
+      });
     } catch (e) {
       developer.log(
         'Failed to load app version: $e',
         name: 'AppDrawer',
       );
-      if (mounted) {
-        setState(() => _appVersion = '0.1.0');
-      }
+      if (!mounted) return;
+      setState(() {
+        _appVersion = 'v0.1.0';
+        _appBuild = '1';
+      });
     }
   }
 
@@ -58,11 +65,11 @@ class _AppDrawerState extends State<AppDrawer> {
   Future<void> _handleLogout(BuildContext dialogContext) async {
     Navigator.pop(dialogContext);
 
-    NoticeService().stopListening();
+    sl<NoticeService>().stopListening();
     cancelAttendanceCheck();
 
     try {
-      await CacheService.clearAllUserCache();
+      await sl<CacheService>().clearAllUserCache();
     } catch (e) {
       developer.log('Logout cleanup error: $e', name: 'AppDrawer');
     }
@@ -76,9 +83,12 @@ class _AppDrawerState extends State<AppDrawer> {
       developer.log('Logout cleanup error: $e', name: 'AppDrawer');
     }
 
-    if (mounted) {
-      AppRoutes.navigateClearStack(context, AppRoutes.login);
-    }
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -87,13 +97,10 @@ class _AppDrawerState extends State<AppDrawer> {
 
   Widget _buildSectionLabel(String text, bool isDarkMode) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, 20, AppSpacing.md, AppSpacing.sm),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 11,
-          letterSpacing: 1.2,
-          fontWeight: FontWeight.w600,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
         ),
       ),
@@ -123,16 +130,13 @@ class _AppDrawerState extends State<AppDrawer> {
         ),
         title: Text(
           title,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
-            fontSize: 12,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
           ),
         ),
@@ -172,61 +176,38 @@ class _AppDrawerState extends State<AppDrawer> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryWhite,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryGold.withValues(alpha: 0.4),
-                            blurRadius: 16,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.school_rounded,
-                        color: AppColors.primaryDarkBlue,
-                        size: 26,
-                      ),
-                    ),
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryGold,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        widget.studentName.isNotEmpty ? widget.studentName[0].toUpperCase() : 'S',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryDarkBlue,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Hi, ${widget.studentName}',
-                  style: const TextStyle(
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
                     color: AppColors.primaryWhite,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryGold.withValues(alpha: 0.4),
+                        blurRadius: 16,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.school_rounded,
+                    color: AppColors.primaryDarkBlue,
+                    size: 26,
                   ),
                 ),
-                const SizedBox(height: 4),
+                AppSpacing.verticalMd,
+                Text(
+                  'Hi, ${widget.studentName}',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: AppColors.primaryWhite,
+                    fontSize: 22,
+                  ),
+                ),
+                AppSpacing.verticalXs,
                 Text(
                   '${widget.studentAuid} • ${widget.studentDepartment}',
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.primaryWhite.withValues(alpha: 0.75),
                     fontSize: 13,
                   ),
@@ -245,20 +226,18 @@ class _AppDrawerState extends State<AppDrawer> {
                   _buildSectionLabel('ACCOUNT', isDarkMode),
                   _buildTile(
                     icon: Icons.person_outline,
-                    iconColor: const Color(0xFF8B5CF6),
+                    iconColor: AppColors.primaryDarkBlue,
                     title: 'Profile',
                     subtitle: 'View your details',
                     isDarkMode: isDarkMode,
                     onTap: () {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Profile page coming soon')),
-                      );
+                      Navigator.pushNamed(context, AppRoutes.profile);
                     },
                   ),
                   _buildTile(
                     icon: Icons.history,
-                    iconColor: const Color(0xFFF59E0B),
+                    iconColor: AppColors.warning,
                     title: 'My History',
                     subtitle: 'Complaints & feedback',
                     isDarkMode: isDarkMode,
@@ -269,9 +248,9 @@ class _AppDrawerState extends State<AppDrawer> {
                   ),
                   _buildTile(
                     icon: Icons.lock_outline,
-                    iconColor: const Color(0xFF3B82F6),
+                    iconColor: AppColors.primaryGold,
                     title: 'Change Password',
-                    subtitle: 'Coming soon',
+                    subtitle: 'Available after account upgrade',
                     isDarkMode: isDarkMode,
                     opacity: 0.4,
                     onTap: () {
@@ -337,9 +316,9 @@ class _AppDrawerState extends State<AppDrawer> {
                   // About
                   _buildTile(
                     icon: Icons.info_outline,
-                    iconColor: const Color(0xFF6B7280),
+                    iconColor: AppColors.textMutedDark,
                     title: 'About',
-                    subtitle: 'Version $_appVersion',
+                    subtitle: _appVersion,
                     isDarkMode: isDarkMode,
                     onTap: () {
                       showDialog(
@@ -373,7 +352,7 @@ class _AppDrawerState extends State<AppDrawer> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Version $_appVersion',
+                                  '$_appVersion (build $_appBuild)',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 13,
@@ -423,15 +402,13 @@ class _AppDrawerState extends State<AppDrawer> {
                   // Privacy Policy
                   _buildTile(
                     icon: Icons.privacy_tip_outlined,
-                    iconColor: const Color(0xFF3B82F6),
+                    iconColor: AppColors.primaryDarkBlue,
                     title: 'Privacy Policy',
                     subtitle: 'Terms and conditions',
                     isDarkMode: isDarkMode,
                     onTap: () {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Privacy Policy coming soon')),
-                      );
+                      Navigator.pushNamed(context, AppRoutes.privacy);
                     },
                   ),
                 ],
@@ -447,11 +424,11 @@ class _AppDrawerState extends State<AppDrawer> {
           ),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            leading: const Icon(Icons.logout_rounded, color: Colors.red),
+            leading: const Icon(Icons.logout_rounded, color: AppColors.error),
             title: const Text(
               'Log Out',
               style: TextStyle(
-                color: Colors.red,
+                color: AppColors.error,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -482,7 +459,7 @@ class _AppDrawerState extends State<AppDrawer> {
                         child: const Text(
                           'Log Out',
                           style: TextStyle(
-                            color: Colors.red,
+                            color: AppColors.error,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -494,19 +471,7 @@ class _AppDrawerState extends State<AppDrawer> {
             },
           ),
 
-          // ─── VERSION ───
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16, top: 8),
-            child: Center(
-              child: Text(
-                'Version $_appVersion',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isDarkMode ? AppColors.textMutedDark : AppColors.textMutedLight,
-                ),
-              ),
-            ),
-          ),
+
         ],
       ),
     );
@@ -527,13 +492,13 @@ class _AppDrawerState extends State<AppDrawer> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primaryGold : Colors.transparent,
+            color: isSelected ? AppColors.primaryGold : AppColors.primaryWhite.withValues(alpha: 0),
             borderRadius: isSelected ? BorderRadius.circular(8) : BorderRadius.zero,
           ),
           alignment: Alignment.center,
           child: Text(
             label,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               color: isSelected

@@ -5,8 +5,13 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
-import '../../../core/helpers/form_submission_helper.dart';
+import '../../../core/di/service_locator.dart';
+import '../../../core/repositories/feedback_repository.dart';
+import '../../../core/queue_service.dart';
 import '../../../core/helpers/input_sanitizer.dart';
+import '../../../core/routes/app_routes.dart';
+import '../../../models/models.dart';
+import '../../../core/repositories/metadata_repository.dart';
 import '../../../core/app_constants.dart';
 
 /// Feedback submission page with form for user feedback.
@@ -39,35 +44,13 @@ class _FeedbackPageState extends State<FeedbackPage>
     'Other',
   ];
 
-  final Map<String, List<String>> _departmentTeachers = {
-    'Computer Science': [
-      'Dr. Alan Turing',
-      'Prof. Ada Lovelace',
-      'Dr. Grace Hopper',
-      'Prof. Donald Knuth',
-    ],
-    'Electronics': [
-      'Dr. Nikola Tesla',
-      'Prof. Heinrich Hertz',
-      'Dr. John Bardeen',
-      'Prof. Thomas Edison',
-    ],
-    'Mechanical': [
-      'Dr. Isaac Newton',
-      'Prof. James Watt',
-      'Dr. Rudolf Diesel',
-      'Prof. Nikolaus Otto',
-    ],
-    'Civil': [
-      'Dr. John Smeaton',
-      'Prof. Gustave Eiffel',
-      'Dr. Karl Terzaghi',
-    ],
-  };
+  Map<String, List<String>> _departmentTeachers = {};
+  bool _isLoadingTeachers = true;
 
   @override
   void initState() {
     super.initState();
+    _loadTeachers();
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -77,6 +60,17 @@ class _FeedbackPageState extends State<FeedbackPage>
       curve: Curves.easeOut,
     );
     _animController.forward();
+  }
+
+  Future<void> _loadTeachers() async {
+    final metadataRepo = sl<MetadataRepository>();
+    final teachers = await metadataRepo.getDepartmentTeachers();
+    if (mounted) {
+      setState(() {
+        _departmentTeachers = teachers;
+        _isLoadingTeachers = false;
+      });
+    }
   }
 
   @override
@@ -89,6 +83,7 @@ class _FeedbackPageState extends State<FeedbackPage>
 
 
   Future<void> _submitFeedback() async {
+    HapticFeedback.lightImpact();
     if (_formKey.currentState!.validate() && _rating > 0) {
       if (_selectedDepartment == null) {
         _showError('Please select a department');
@@ -101,6 +96,8 @@ class _FeedbackPageState extends State<FeedbackPage>
 
       setState(() => _isSubmitting = true);
 
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+
       try {
         final prefs = await SharedPreferences.getInstance();
         final auid = prefs.getString(AppConstants.auidKey);
@@ -109,38 +106,41 @@ class _FeedbackPageState extends State<FeedbackPage>
           throw Exception('User not logged in');
         }
 
-        final feedbackData = {
-          'userId': auid,
-          'department': _selectedDepartment,
-          'teacher': _selectedTeacher,
-          'category': _selectedCategory,
-          'rating': _rating,
-          'message': InputSanitizer.sanitize(_feedbackController.text.trim()),
-          'status': 'pending',
-          'createdAt': DateTime.now().toIso8601String(),
-        };
+        final feedbackData = FeedbackModel(
+          userId: auid,
+          department: _selectedDepartment!,
+          teacher: _selectedTeacher!,
+          category: _selectedCategory,
+          rating: _rating,
+          message: InputSanitizer.sanitize(_feedbackController.text.trim()),
+          status: 'pending',
+          createdAt: DateTime.now().toIso8601String(),
+        ).toJson();
 
-        final submitted = await FormSubmissionHelper.submitForm(
-          type: 'feedback',
-          auid: auid,
-          data: feedbackData,
-        );
+        // Optimistic UI Update: Add to queue and pop immediately
+        await sl<QueueService>().addToQueue('feedback', auid, feedbackData);
         
-        if (submitted) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Feedback submitted successfully!'),
-                backgroundColor: AppColors.success,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            );
-            Navigator.pop(context);
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+        if (mounted) {
+          AppRoutes.navigatorKey.currentState?.pop();
+        }
+        
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: const Text('Feedback submitted successfully!'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Process in background
+        sl<FeedbackRepository>().submitFeedback(
+          auid,
+          feedbackData,
+        ).then((submitted) {
+          if (!submitted && mounted) {
+            scaffoldMessenger.showSnackBar(
               SnackBar(
                 content: const Text('No internet — saved as draft, will send automatically when you reconnect'),
                 backgroundColor: AppColors.warning,
@@ -149,20 +149,16 @@ class _FeedbackPageState extends State<FeedbackPage>
                 duration: const Duration(seconds: 4),
               ),
             );
-            Navigator.pop(context);
           }
-        }
+        });
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } finally {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
         if (mounted) {
           setState(() => _isSubmitting = false);
         }
@@ -263,7 +259,7 @@ class _FeedbackPageState extends State<FeedbackPage>
         child: DropdownButton<String>(
           value: _selectedDepartment,
           hint: Text(
-            'Select Department',
+            _isLoadingTeachers ? 'Loading Departments...' : 'Select Department',
             style: TextStyle(
               fontSize: 14,
               color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -312,7 +308,7 @@ class _FeedbackPageState extends State<FeedbackPage>
         child: DropdownButton<String>(
           value: _selectedTeacher,
           hint: Text(
-            'Select Teacher',
+            _isLoadingTeachers ? 'Loading Teachers...' : 'Select Teacher',
             style: TextStyle(
               fontSize: 14,
               color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -420,7 +416,10 @@ class _FeedbackPageState extends State<FeedbackPage>
       children: _categories.map((category) {
         final isSelected = _selectedCategory == category;
         return GestureDetector(
-          onTap: () => setState(() => _selectedCategory = category),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            setState(() => _selectedCategory = category);
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -457,7 +456,10 @@ class _FeedbackPageState extends State<FeedbackPage>
       children: List.generate(5, (index) {
         final isSelected = index < _rating;
         return GestureDetector(
-          onTap: () => setState(() => _rating = index + 1),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            setState(() => _rating = index + 1);
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             margin: const EdgeInsets.only(right: 8),
@@ -476,7 +478,7 @@ class _FeedbackPageState extends State<FeedbackPage>
     return TextFormField(
       controller: _feedbackController,
       maxLines: 5,
-      maxLength: 1000,
+      maxLength: InputSanitizer.maxLength,
       maxLengthEnforcement: MaxLengthEnforcement.enforced,
       style: TextStyle(fontSize: 14, color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
       decoration: InputDecoration(

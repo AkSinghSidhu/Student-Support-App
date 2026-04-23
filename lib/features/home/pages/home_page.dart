@@ -289,42 +289,33 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       Expanded(
                         child: Row(
                           children: [
-                            // Hamburger menu icon
+                            // Person icon container
                             Builder(
                               builder: (BuildContext drawerContext) {
-                                return IconButton(
-                                  icon: const Icon(
-                                    Icons.menu_rounded,
-                                    color: AppColors.primaryWhite,
-                                    size: 24,
+                                return GestureDetector(
+                                  onTap: () => Scaffold.of(drawerContext).openDrawer(),
+                                  child: Container(
+                                    width: 56,
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryWhite,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.primaryGold.withValues(alpha: 0.3),
+                                          blurRadius: 12,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.person_rounded,
+                                      color: AppColors.primaryDarkBlue,
+                                      size: 30,
+                                    ),
                                   ),
-                                  onPressed: () => Scaffold.of(drawerContext).openDrawer(),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
                                 );
                               },
-                            ),
-                            const SizedBox(width: 8),
-                            // Person icon container
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryWhite,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primaryGold.withValues(alpha: 0.3),
-                                    blurRadius: 12,
-                                    spreadRadius: 1,
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.person_rounded,
-                                color: AppColors.primaryDarkBlue,
-                                size: 30,
-                              ),
                             ),
                             AppSpacing.horizontalMd,
                             Expanded(
